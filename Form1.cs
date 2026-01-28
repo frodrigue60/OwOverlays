@@ -120,7 +120,7 @@ namespace OwOverlays
             this.Controls.Add(chkLockOverlays);
 
             lblOrientation = new Label();
-            lblOrientation.Text = "Orientacion:";
+            lblOrientation.Text = "Borde:";
             lblOrientation.Location = new Point(10, 375);
             lblOrientation.Size = new Size(180, 25);
             this.Controls.Add(lblOrientation);
