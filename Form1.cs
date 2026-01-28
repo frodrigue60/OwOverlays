@@ -2,6 +2,9 @@ using Newtonsoft.Json;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
+using System.IO;
+using System.Windows.Forms;
+using System.Drawing;
 
 namespace OwOverlays
 {
@@ -10,7 +13,8 @@ namespace OwOverlays
         private NotifyIcon trayIcon;
         private ContextMenuStrip trayMenu;
         private List<OverlayForm> overlays = new List<OverlayForm>();
-        private ListBox lstOverlays;
+        private FlowLayoutPanel gridOverlays;
+        private int selectedIndex = -1;
         private Button btnAdd;
         private Button btnRemove;
         private NumericUpDown heightInput;
@@ -18,6 +22,7 @@ namespace OwOverlays
         private CheckBox TaskbarHeightCheck;
         private CheckBox chkLockOverlays;
         private bool IsLocked;
+        private bool isPaused = false;
         private const string ConfigFile = "GifOverlayConfig.json";
         private AppSettings currentSettings = new AppSettings();
         private ComboBox orientationDropdown;
@@ -53,28 +58,13 @@ namespace OwOverlays
             Color controlBack = Color.FromArgb(45, 45, 45);
             Color accentColor = Color.FromArgb(0, 120, 212);
 
-            lstOverlays = new ListBox();
-            lstOverlays.Location = new Point(10, 10);
-            lstOverlays.Size = new Size(365, 200);
-            lstOverlays.BackColor = controlBack;
-            lstOverlays.ForeColor = Color.White;
-            lstOverlays.BorderStyle = BorderStyle.None;
-            lstOverlays.DrawMode = DrawMode.OwnerDrawFixed;
-            lstOverlays.ItemHeight = 25;
-            lstOverlays.DrawItem += (s, e) =>
-            {
-                if (e.Index < 0) return;
-                e.DrawBackground();
-                bool isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
-                using (SolidBrush bg = new SolidBrush(isSelected ? accentColor : controlBack))
-                using (SolidBrush text = new SolidBrush(Color.White))
-                {
-                    e.Graphics.FillRectangle(bg, e.Bounds);
-                    e.Graphics.DrawString(lstOverlays.Items[e.Index].ToString(), e.Font, text, e.Bounds.X + 5,
-                        e.Bounds.Y + 3);
-                }
-            };
-            this.Controls.Add(lstOverlays);
+            gridOverlays = new FlowLayoutPanel();
+            gridOverlays.Location = new Point(10, 10);
+            gridOverlays.Size = new Size(365, 200);
+            gridOverlays.BackColor = controlBack;
+            gridOverlays.AutoScroll = true;
+            gridOverlays.Padding = new Padding(5);
+            this.Controls.Add(gridOverlays);
 
             btnAdd = CreateModernButton("Agregar GIF", new Point(10, 220), new Size(175, 35), accentColor);
             btnAdd.Click += BtnAdd_Click;
@@ -171,12 +161,12 @@ namespace OwOverlays
             trayMenu.Items.Add(new ToolStripSeparator());
             trayMenu.Items.Add($"Bloquear overlays: {(IsLocked ? "ON" : "OFF")}", null,
                 (s, e) => { chkLockOverlays.Checked = !chkLockOverlays.Checked; });
+            trayMenu.Items.Add("Pausar visualización", null, (s, e) => TogglePause());
             trayMenu.Items.Add("Salir", null, (s, e) => ExitApplication());
 
             trayIcon.ContextMenuStrip = trayMenu;
 
             trayIcon.DoubleClick += (s, e) => this.ShowWindow();
-
             this.Resize += (s, e) =>
             {
                 if (this.WindowState == FormWindowState.Minimized)
@@ -185,8 +175,6 @@ namespace OwOverlays
                     this.Hide();
                 }
             };
-
-            lstOverlays.SelectedIndexChanged += (s, e) => UpdateSelectionState();
 
             this.Size = new Size(400, 500);
 
@@ -244,7 +232,7 @@ namespace OwOverlays
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al guardar configuraci�n: {ex.Message}", "Error", MessageBoxButtons.OK,
+                MessageBox.Show($"Error al guardar configuracin: {ex.Message}", "Error", MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
             }
         }
@@ -276,12 +264,12 @@ namespace OwOverlays
                         {
                             var overlay = new OverlayForm(config.FilePath, GifHeight);
                             overlay.Orientation = config.Orientation;
+                            overlay.Show();
                             overlay.UpdateWindowSize();
                             overlay.Location = new Point(config.X, config.Y);
-                            overlay.Show();
                             overlay.RequestRemove += Overlay_RequestRemove;
                             overlays.Add(overlay);
-                            lstOverlays.Items.Add(Path.GetFileName(config.FilePath));
+                            AddGridItem(config.FilePath);
                         }
                         catch (Exception ex)
                         {
@@ -301,6 +289,9 @@ namespace OwOverlays
                 if (trayMenu?.Items.Count > 3)
                     trayMenu.Items[3].Text = $"Bloquear overlays: {(IsLocked ? "ON" : "OFF")}";
 
+                if (trayMenu?.Items.Count > 4)
+                    trayMenu.Items[4].Text = isPaused ? "Reanudar visualización" : "Pausar visualización";
+
                 UpdateTrayIcon();
                 UpdateSelectionState();
             }
@@ -315,21 +306,30 @@ namespace OwOverlays
         {
             if (overlays == null) return;
 
+            Color accentColor = Color.FromArgb(0, 120, 212);
+            Color controlBack = Color.FromArgb(45, 45, 45);
+
             for (int i = 0; i < overlays.Count; i++)
             {
-                bool selected = (lstOverlays.SelectedIndex == i);
+                bool selected = (selectedIndex == i);
                 if (overlays[i].IsSelected != selected)
                 {
                     overlays[i].IsSelected = selected;
                     overlays[i].RefreshTransparency();
                 }
+                
+                if (gridOverlays.Controls.Count > i)
+                {
+                    var item = gridOverlays.Controls[i] as GifThumbnailItem;
+                    item?.UpdateSelection(selected, accentColor, controlBack);
+                }
             }
 
             isUpdatingUI = true;
-            if (lstOverlays.SelectedIndex >= 0 && lstOverlays.SelectedIndex < overlays.Count)
+            if (selectedIndex >= 0 && selectedIndex < overlays.Count)
             {
                 orientationDropdown.Enabled = true;
-                orientationDropdown.SelectedItem = overlays[lstOverlays.SelectedIndex].Orientation;
+                orientationDropdown.SelectedItem = overlays[selectedIndex].Orientation;
             }
             else
             {
@@ -341,7 +341,29 @@ namespace OwOverlays
 
         private void ClearSelection()
         {
-            lstOverlays.SelectedIndex = -1;
+            selectedIndex = -1;
+            UpdateSelectionState();
+        }
+
+        private void AddGridItem(string filePath)
+        {
+            int index = gridOverlays.Controls.Count;
+            var item = new GifThumbnailItem(filePath, index, Color.FromArgb(0, 120, 212), Color.FromArgb(45, 45, 45));
+            item.Click += (s, e) =>
+            {
+                selectedIndex = (s as GifThumbnailItem).ItemIndex;
+                UpdateSelectionState();
+            };
+            gridOverlays.Controls.Add(item);
+        }
+
+        private void RebuildGrid()
+        {
+            gridOverlays.Controls.Clear();
+            for (int i = 0; i < overlays.Count; i++)
+            {
+                AddGridItem(overlays[i].GifFilePath);
+            }
             UpdateSelectionState();
         }
 
@@ -349,9 +371,9 @@ namespace OwOverlays
         {
             if (isUpdatingUI) return;
 
-            if (lstOverlays.SelectedIndex >= 0)
+            if (selectedIndex >= 0)
             {
-                var selectedOverlay = overlays[lstOverlays.SelectedIndex];
+                var selectedOverlay = overlays[selectedIndex];
                 OverlayOrientation oldOrientation = selectedOverlay.Orientation;
                 OverlayOrientation newOrientation = (OverlayOrientation)orientationDropdown.SelectedItem;
 
@@ -531,11 +553,12 @@ namespace OwOverlays
                     newOverlay.SetLocked(IsLocked);
                     overlays.Add(newOverlay);
                     newOverlay.RequestRemove += Overlay_RequestRemove;
-                    lstOverlays.Items.Add(Path.GetFileName(gifPath));
+                    AddGridItem(gifPath);
 
                     newOverlay.UpdateWindowSize();
                     newOverlay.RefreshTransparency();
-                    newOverlay.Show();
+                    if (isPaused) newOverlay.Hide();
+                    else newOverlay.Show();
 
                     SaveConfig();
                 }
@@ -549,14 +572,15 @@ namespace OwOverlays
 
         private void BtnRemove_Click(object sender, EventArgs e)
         {
-            if (lstOverlays.SelectedIndex >= 0)
+            if (selectedIndex >= 0)
             {
-                int index = lstOverlays.SelectedIndex;
+                int index = selectedIndex;
                 OverlayForm toRemove = overlays[index];
                 toRemove.Close();
                 overlays.RemoveAt(index);
-                lstOverlays.Items.RemoveAt(index);
-
+                
+                selectedIndex = -1;
+                RebuildGrid();
                 SaveConfig();
             }
         }
@@ -570,11 +594,11 @@ namespace OwOverlays
                 {
                     overlay.Close();
                     overlays.RemoveAt(index);
-                    lstOverlays.Items.RemoveAt(index);
+                    
+                    if (selectedIndex == index) selectedIndex = -1;
+                    else if (selectedIndex > index) selectedIndex--;
 
-                    if (lstOverlays.Items.Count > 0 && lstOverlays.SelectedIndex >= lstOverlays.Items.Count)
-                        lstOverlays.SelectedIndex = lstOverlays.Items.Count - 1;
-
+                    RebuildGrid();
                     SaveConfig();
                 }
             }
@@ -586,6 +610,63 @@ namespace OwOverlays
             this.WindowState = FormWindowState.Normal;
             this.BringToFront();
             this.Activate();
+        }
+
+        private void TogglePause()
+        {
+            isPaused = !isPaused;
+            foreach (var overlay in overlays)
+            {
+                overlay.SetPaused(isPaused);
+            }
+
+            if (trayMenu?.Items.Count > 4)
+                trayMenu.Items[4].Text = isPaused ? "Reanudar visualización" : "Pausar visualización";
+        }
+
+        public class GifThumbnailItem : System.Windows.Forms.Panel
+        {
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+            public int ItemIndex { get; set; }
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+            public string GifPath { get; set; }
+            [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+            public bool IsItemSelected { get; set; }
+
+            private System.Windows.Forms.PictureBox pbPreview;
+
+            public GifThumbnailItem(string filePath, int index, System.Drawing.Color accentColor, System.Drawing.Color backColor)
+            {
+                this.GifPath = filePath;
+                this.ItemIndex = index;
+                this.Size = new System.Drawing.Size(100, 100);
+                this.Margin = new System.Windows.Forms.Padding(5);
+                this.BackColor = backColor;
+                this.Cursor = System.Windows.Forms.Cursors.Hand;
+
+                pbPreview = new System.Windows.Forms.PictureBox();
+                pbPreview.Size = new System.Drawing.Size(80, 80);
+                pbPreview.Location = new System.Drawing.Point(10, 10);
+                pbPreview.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+                pbPreview.BackColor = System.Drawing.Color.Transparent;
+                try
+                {
+                    using (System.Drawing.Image img = System.Drawing.Image.FromFile(filePath))
+                    {
+                        pbPreview.Image = new System.Drawing.Bitmap(img);
+                    }
+                }
+                catch { }
+                this.Controls.Add(pbPreview);
+
+                pbPreview.Click += (s, e) => this.OnClick(e);
+            }
+
+            public void UpdateSelection(bool selected, System.Drawing.Color accentColor, System.Drawing.Color backColor)
+            {
+                IsItemSelected = selected;
+                this.BackColor = selected ? accentColor : backColor;
+            }
         }
 
         private void CleanupTrayIcon()
@@ -620,7 +701,7 @@ namespace OwOverlays
             }
 
             overlays.Clear();
-            lstOverlays.Items.Clear();
+            RebuildGrid();
 
 
             CleanupTrayIcon();
@@ -785,6 +866,22 @@ namespace OwOverlays
             if (locked) style |= 0x20;
             else style &= ~0x20;
             SetWindowLong(this.Handle, -20, style);
+            RefreshTransparency();
+        }
+
+        public void SetPaused(bool paused)
+        {
+            if (paused)
+            {
+                animationTimer.Stop();
+                this.Hide();
+            }
+            else
+            {
+                animationTimer.Start();
+                this.Show();
+                MakeTransparent();
+            }
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
