@@ -5,6 +5,18 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows.Forms;
 using System.Drawing;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using ISImage = SixLabors.ImageSharp.Image;
+using ISColor = SixLabors.ImageSharp.Color;
+// Resolve ambiguities by aliasing System.Drawing types
+using Point = System.Drawing.Point;
+using Size = System.Drawing.Size;
+using Color = System.Drawing.Color;
+using Rectangle = System.Drawing.Rectangle;
+using Image = System.Drawing.Image;
+using SDImage = System.Drawing.Image;
+using SDColor = System.Drawing.Color;
 
 namespace OwOverlays
 {
@@ -528,12 +540,13 @@ namespace OwOverlays
         private void BtnAdd_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "GIF Files (*.gif)|*.gif";
-
+            openFileDialog.Filter = "Imágenes soportadas|*.gif;*.webp;*.png;*.jpg;*.jpeg|GIF|*.gif|WebP|*.webp|PNG|*.png|JPG|*.jpg;*.jpeg|Todos|*.*";
+            openFileDialog.Multiselect = true;
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                string gifPath = openFileDialog.FileName;
+                foreach (string gifPath in openFileDialog.FileNames)
+                {
                 try
                 {
                     OverlayForm newOverlay = new OverlayForm(gifPath, GifHeight);
@@ -566,6 +579,7 @@ namespace OwOverlays
                 {
                     MessageBox.Show($"Error al cargar el GIF: {ex.Message}", "Error", MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
+                }
                 }
             }
         }
@@ -651,9 +665,25 @@ namespace OwOverlays
                 pbPreview.BackColor = System.Drawing.Color.Transparent;
                 try
                 {
-                    using (System.Drawing.Image img = System.Drawing.Image.FromFile(filePath))
+                    string ext = System.IO.Path.GetExtension(filePath).ToLower();
+                    if (ext == ".webp")
                     {
-                        pbPreview.Image = new System.Drawing.Bitmap(img);
+                        using (var image = ISImage.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(filePath))
+                        {
+                            using (var ms = new MemoryStream())
+                            {
+                                image.Frames.CloneFrame(0).SaveAsPng(ms);
+                                ms.Seek(0, SeekOrigin.Begin);
+                                pbPreview.Image = new System.Drawing.Bitmap(ms);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        using (System.Drawing.Image img = System.Drawing.Image.FromFile(filePath))
+                        {
+                            pbPreview.Image = new System.Drawing.Bitmap(img);
+                        }
                     }
                 }
                 catch { }
@@ -768,7 +798,11 @@ namespace OwOverlays
         public bool IsSelected { get; set; } = false;
 
         private System.Windows.Forms.Timer animationTimer;
-        private Image originalImage;
+        private SDImage originalImage;
+        private bool isWebP;
+        private List<Bitmap> webpFrames = new List<Bitmap>();
+        private List<int> webpDelays = new List<int>();
+        private int currentFrameIndex = 0;
 
         protected override CreateParams CreateParams
         {
@@ -790,21 +824,40 @@ namespace OwOverlays
             this.ShowInTaskbar = false;
             this.BackColor = Color.Black;
 
-            originalImage = Image.FromFile(gifPath);
-            UpdateSize(height);
+            string ext = Path.GetExtension(gifPath).ToLower();
+            isWebP = (ext == ".webp");
+
+            if (isWebP)
+            {
+                LoadWebP(gifPath, height);
+            }
+            else
+            {
+                originalImage = SDImage.FromFile(gifPath);
+                UpdateSize(height);
+                ImageAnimator.Animate(originalImage, (o, ev) => { });
+            }
 
             animationTimer = new System.Windows.Forms.Timer();
-            animationTimer.Interval = 30;
+            animationTimer.Interval = isWebP && webpDelays.Count > 0 ? webpDelays[0] : 30;
             animationTimer.Tick += (s, e) =>
             {
-                if (originalImage != null)
+                if (isWebP)
+                {
+                    if (webpFrames.Count > 0)
+                    {
+                        currentFrameIndex = (currentFrameIndex + 1) % webpFrames.Count;
+                        animationTimer.Interval = webpDelays[currentFrameIndex];
+                        MakeTransparent();
+                    }
+                }
+                else if (originalImage != null)
                 {
                     ImageAnimator.UpdateFrames(originalImage);
                     MakeTransparent();
                 }
             };
 
-            ImageAnimator.Animate(originalImage, (o, ev) => { });
             animationTimer.Start();
 
             this.MouseDown += (s, e) =>
@@ -834,8 +887,56 @@ namespace OwOverlays
             this.Load += (s, e) => MakeTransparent();
         }
 
+        private void LoadWebP(string path, int height)
+        {
+            try
+            {
+                using (var image = ISImage.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(path))
+                {
+                    float ar = (float)image.Width / image.Height;
+                    int targetW, targetH;
+                    if (Orientation == OverlayOrientation.Derecha || Orientation == OverlayOrientation.Izquierda)
+                    {
+                        targetW = height;
+                        targetH = (int)(height * ar);
+                    }
+                    else
+                    {
+                        targetW = (int)(height * ar);
+                        targetH = height;
+                    }
+
+                    this.ClientSize = new Size(targetW, targetH);
+
+                    for (int i = 0; i < image.Frames.Count; i++)
+                    {
+                        var frame = image.Frames[i];
+                        var frameMetadata = frame.Metadata.GetWebpMetadata();
+                        int delay = (int)frameMetadata.FrameDelay;
+                        if (delay <= 0) delay = 100;
+                        webpDelays.Add(delay);
+
+                        using (var ms = new MemoryStream())
+                        {
+                            using (var frameImage = image.Frames.CloneFrame(i))
+                            {
+                                frameImage.SaveAsPng(ms);
+                            }
+                            ms.Seek(0, SeekOrigin.Begin);
+                            webpFrames.Add(new Bitmap(ms));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading WebP: {ex.Message}");
+            }
+        }
+
         public void UpdateSize(int height)
         {
+            if (isWebP) return; // WebP size is handled in LoadWebP
             if (originalImage == null) return;
             float ar = (float)originalImage.Width / originalImage.Height;
             if (Orientation == OverlayOrientation.Derecha || Orientation == OverlayOrientation.Izquierda)
@@ -889,12 +990,16 @@ namespace OwOverlays
             animationTimer?.Stop();
             animationTimer?.Dispose();
             originalImage?.Dispose();
+            foreach (var bmp in webpFrames) bmp.Dispose();
+            webpFrames.Clear();
             base.OnFormClosed(e);
         }
 
         private void MakeTransparent()
         {
-            if (originalImage == null || this.IsDisposed) return;
+            if (this.IsDisposed) return;
+            bool hasContent = isWebP ? (webpFrames.Count > 0) : (originalImage != null);
+            if (!hasContent) return;
             int w = this.ClientSize.Width, h = this.ClientSize.Height;
             if (w <= 0 || h <= 0) return;
 
@@ -905,25 +1010,35 @@ namespace OwOverlays
                     g.Clear(Color.Transparent);
                     g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
 
+                    Bitmap frameToDraw = null;
+                    if (isWebP)
+                    {
+                        if (webpFrames.Count > currentFrameIndex)
+                            frameToDraw = webpFrames[currentFrameIndex];
+                    }
+                    
+                    SDImage imageToDraw = isWebP ? (SDImage)frameToDraw : originalImage;
+                    if (imageToDraw == null) return;
+
                     switch (Orientation)
                     {
                         case OverlayOrientation.Izquierda:
                             g.TranslateTransform(w, 0);
                             g.RotateTransform(90);
-                            g.DrawImage(originalImage, 0, 0, h, w);
+                            g.DrawImage(imageToDraw, 0, 0, h, w);
                             break;
                         case OverlayOrientation.Superior:
                             g.TranslateTransform(w, h);
                             g.RotateTransform(180);
-                            g.DrawImage(originalImage, 0, 0, w, h);
+                            g.DrawImage(imageToDraw, 0, 0, w, h);
                             break;
                         case OverlayOrientation.Derecha:
                             g.TranslateTransform(0, h);
                             g.RotateTransform(270);
-                            g.DrawImage(originalImage, 0, 0, h, w);
+                            g.DrawImage(imageToDraw, 0, 0, h, w);
                             break;
                         default:
-                            g.DrawImage(originalImage, 0, 0, w, h);
+                            g.DrawImage(imageToDraw, 0, 0, w, h);
                             break;
                     }
 
