@@ -276,9 +276,9 @@ namespace OwOverlays
                         {
                             var overlay = new OverlayForm(config.FilePath, GifHeight);
                             overlay.Orientation = config.Orientation;
-                            overlay.Show();
                             overlay.UpdateWindowSize();
                             overlay.Location = new Point(config.X, config.Y);
+                            overlay.Show();
                             overlay.RequestRemove += Overlay_RequestRemove;
                             overlays.Add(overlay);
                             lstOverlays.Items.Add(Path.GetFileName(config.FilePath));
@@ -515,15 +515,7 @@ namespace OwOverlays
                 try
                 {
                     OverlayForm newOverlay = new OverlayForm(gifPath, GifHeight);
-
-                    newOverlay.Show();
-                    newOverlay.SetLocked(IsLocked);
-                    overlays.Add(newOverlay);
-                    newOverlay.RequestRemove += Overlay_RequestRemove;
-                    lstOverlays.Items.Add(Path.GetFileName(gifPath));
-
-                    newOverlay.UpdateWindowSize();
-
+                    
                     int nextX = 0;
                     foreach (var o in overlays)
                     {
@@ -536,7 +528,14 @@ namespace OwOverlays
                     if (nextX + newOverlay.Width > screenWidth) nextX = 0;
 
                     newOverlay.Location = new Point(nextX, baseY);
+                    newOverlay.SetLocked(IsLocked);
+                    overlays.Add(newOverlay);
+                    newOverlay.RequestRemove += Overlay_RequestRemove;
+                    lstOverlays.Items.Add(Path.GetFileName(gifPath));
+
+                    newOverlay.UpdateWindowSize();
                     newOverlay.RefreshTransparency();
+                    newOverlay.Show();
 
                     SaveConfig();
                 }
@@ -703,6 +702,7 @@ namespace OwOverlays
         public OverlayForm(string gifPath, int height)
         {
             GifFilePath = gifPath;
+            var forceHandle = this.Handle; // Force window handle creation to allow early configuration
             this.FormBorderStyle = FormBorderStyle.None;
             this.TopMost = true;
             this.StartPosition = FormStartPosition.Manual;
