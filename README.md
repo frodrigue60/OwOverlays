@@ -25,7 +25,7 @@ dotnet build
 dotnet run
 ```
 
-Para publicar una versión independiente:
+Para compilar una versión sin requerimiento de dependencias:
 
 ```powershell
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "./dist"
