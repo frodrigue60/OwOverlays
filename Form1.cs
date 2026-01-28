@@ -40,6 +40,9 @@ namespace OwOverlays
         private ComboBox orientationDropdown;
         private Label lblOrientation;
         private bool isUpdatingUI = false;
+        private ColorDialog colorDialog;
+        private CheckBox chkChromaKey;
+        private Button btnChromaColor;
 
 
         public static int GifHeight { get; private set; } = 100;
@@ -138,15 +141,58 @@ namespace OwOverlays
             orientationDropdown.SelectedIndexChanged += OrientationDropdown_SelectedIndexChanged;
             this.Controls.Add(orientationDropdown);
 
+            chkChromaKey = new CheckBox();
+            chkChromaKey.Text = "Usar Chroma Key (Remover fondo)";
+            chkChromaKey.Location = new Point(10, 410);
+            chkChromaKey.Size = new Size(185, 25);
+            chkChromaKey.Enabled = false;
+            chkChromaKey.ForeColor = Color.White;
+            chkChromaKey.CheckedChanged += ChkChromaKey_CheckedChanged;
+            this.Controls.Add(chkChromaKey);
+
+            btnChromaColor = CreateModernButton("Color", new Point(200, 410), new Size(80, 25), Color.Black);
+            btnChromaColor.Enabled = false;
+            btnChromaColor.Click += BtnChromaColor_Click;
+            this.Controls.Add(btnChromaColor);
+
+            Button btnEyedropper = CreateModernButton("Gotero", new Point(290, 410), new Size(85, 25), Color.FromArgb(60, 60, 60));
+            btnEyedropper.Name = "btnEyedropper";
+            btnEyedropper.Enabled = false;
+            btnEyedropper.Click += BtnEyedropper_Click;
+            this.Controls.Add(btnEyedropper);
+
+            colorDialog = new ColorDialog();
+
+            Label lblTolerance = new Label();
+            lblTolerance.Text = "Tolerancia: 30";
+            lblTolerance.Name = "lblTolerance";
+            lblTolerance.ForeColor = Color.White;
+            lblTolerance.Font = new Font("Segoe UI", 8F);
+            lblTolerance.Location = new Point(10, 440);
+            lblTolerance.Size = new Size(90, 20);
+            this.Controls.Add(lblTolerance);
+
+            TrackBar trackTolerance = new TrackBar();
+            trackTolerance.Name = "trackTolerance";
+            trackTolerance.Minimum = 10;
+            trackTolerance.Maximum = 150;
+            trackTolerance.Value = 30;
+            trackTolerance.TickFrequency = 20;
+            trackTolerance.Location = new Point(100, 435);
+            trackTolerance.Size = new Size(275, 30);
+            trackTolerance.Enabled = false;
+            trackTolerance.ValueChanged += TrackTolerance_ValueChanged;
+            this.Controls.Add(trackTolerance);
+
             Label lblHelp = new Label();
             lblHelp.Text = "Tip: Click derecho sobre un GIF desbloqueado para cerrar.";
             lblHelp.ForeColor = Color.Gray;
             lblHelp.Font = new Font("Segoe UI", 8F);
-            lblHelp.Location = new Point(10, 420);
+            lblHelp.Location = new Point(10, 475);
             lblHelp.Size = new Size(360, 20);
             this.Controls.Add(lblHelp);
 
-            this.Size = new Size(400, 500);
+            this.Size = new Size(400, 550);
 
             trayIcon = new NotifyIcon();
             trayIcon.Text = "Gestor de Overlays GIF";
@@ -276,12 +322,16 @@ namespace OwOverlays
                         {
                             var overlay = new OverlayForm(config.FilePath, GifHeight);
                             overlay.Orientation = config.Orientation;
+                            overlay.UseChromaKey = config.UseChromaKey;
+                            overlay.ChromaKeyColor = ColorTranslator.FromHtml(config.ChromaKeyColorHex);
+                            overlay.ChromaKeyTolerance = config.ChromaKeyTolerance;
                             overlay.Show();
                             overlay.UpdateWindowSize();
                             overlay.Location = new Point(config.X, config.Y);
                             overlay.RequestRemove += Overlay_RequestRemove;
                             overlays.Add(overlay);
                             AddGridItem(config.FilePath);
+                            overlay.RefreshTransparency();
                         }
                         catch (Exception ex)
                         {
@@ -340,12 +390,38 @@ namespace OwOverlays
             isUpdatingUI = true;
             if (selectedIndex >= 0 && selectedIndex < overlays.Count)
             {
+                var selectedOverlay = overlays[selectedIndex];
                 orientationDropdown.Enabled = true;
-                orientationDropdown.SelectedItem = overlays[selectedIndex].Orientation;
+                orientationDropdown.SelectedItem = selectedOverlay.Orientation;
+
+                chkChromaKey.Enabled = true;
+                chkChromaKey.Checked = selectedOverlay.UseChromaKey;
+
+                btnChromaColor.Enabled = true;
+                btnChromaColor.BackColor = selectedOverlay.ChromaKeyColor;
+
+                if (this.Controls["btnEyedropper"] is Button btnEyedropper)
+                    btnEyedropper.Enabled = true;
+
+                if (this.Controls["trackTolerance"] is TrackBar track)
+                {
+                    track.Enabled = selectedOverlay.UseChromaKey;
+                    track.Value = Math.Max(track.Minimum, Math.Min(track.Maximum, selectedOverlay.ChromaKeyTolerance));
+                }
+                if (this.Controls["lblTolerance"] is Label lbl)
+                    lbl.Text = $"Tolerancia: {selectedOverlay.ChromaKeyTolerance}";
             }
             else
             {
                 orientationDropdown.Enabled = false;
+                chkChromaKey.Enabled = false;
+                btnChromaColor.Enabled = false;
+
+                if (this.Controls["btnEyedropper"] is Button btnEyedropper)
+                    btnEyedropper.Enabled = false;
+
+                if (this.Controls["trackTolerance"] is TrackBar track)
+                    track.Enabled = false;
             }
 
             isUpdatingUI = false;
@@ -452,6 +528,91 @@ namespace OwOverlays
 
             UpdateTrayIcon();
             SaveConfig();
+        }
+
+        private void ChkChromaKey_CheckedChanged(object sender, EventArgs e)
+        {
+            if (isUpdatingUI) return;
+            if (selectedIndex >= 0 && selectedIndex < overlays.Count)
+            {
+                overlays[selectedIndex].UseChromaKey = chkChromaKey.Checked;
+                overlays[selectedIndex].RefreshTransparency();
+
+                if (this.Controls["trackTolerance"] is TrackBar track)
+                    track.Enabled = chkChromaKey.Checked;
+
+                SaveConfig();
+            }
+        }
+
+        private void BtnChromaColor_Click(object sender, EventArgs e)
+        {
+            if (selectedIndex >= 0 && selectedIndex < overlays.Count)
+            {
+                colorDialog.Color = overlays[selectedIndex].ChromaKeyColor;
+                if (colorDialog.ShowDialog() == DialogResult.OK)
+                {
+                    overlays[selectedIndex].ChromaKeyColor = colorDialog.Color;
+                    btnChromaColor.BackColor = colorDialog.Color;
+                    overlays[selectedIndex].RefreshTransparency();
+                    SaveConfig();
+                }
+            }
+        }
+
+        private void BtnEyedropper_Click(object sender, EventArgs e)
+        {
+            if (selectedIndex >= 0 && selectedIndex < overlays.Count)
+            {
+                var overlay = overlays[selectedIndex];
+
+                // Temporarily unlock to allow clicking
+                int style = GetWindowLong(overlay.Handle, -20);
+                SetWindowLong(overlay.Handle, -20, style & ~0x20);
+
+                overlay.Cursor = Cursors.Cross;
+                overlay.IsEyedropperMode = true;
+                overlay.BringToFront();
+
+                // Subscribe to color picked event (one-time)
+                Action<Color> handler = null;
+                handler = (pickedColor) =>
+                {
+                    overlay.ChromaKeyColor = pickedColor;
+                    btnChromaColor.BackColor = pickedColor;
+                    overlay.RefreshTransparency();
+                    SaveConfig();
+
+                    // Restore locked state
+                    if (IsLocked)
+                    {
+                        int s = GetWindowLong(overlay.Handle, -20);
+                        SetWindowLong(overlay.Handle, -20, s | 0x20);
+                    }
+
+                    overlay.ColorPicked -= handler;
+                };
+                overlay.ColorPicked += handler;
+            }
+        }
+
+        [DllImport("user32.dll")]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        private void TrackTolerance_ValueChanged(object sender, EventArgs e)
+        {
+            if (isUpdatingUI) return;
+            if (selectedIndex >= 0 && selectedIndex < overlays.Count && sender is TrackBar t)
+            {
+                overlays[selectedIndex].ChromaKeyTolerance = t.Value;
+                overlays[selectedIndex].RefreshTransparency();
+                if (this.Controls["lblTolerance"] is Label lbl)
+                    lbl.Text = $"Tolerancia: {t.Value}";
+                SaveConfig();
+            }
         }
 
         private void TaskbarHeightCheck_CheckedChanged(object sender, EventArgs e)
@@ -804,6 +965,19 @@ namespace OwOverlays
         private List<int> webpDelays = new List<int>();
         private int currentFrameIndex = 0;
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool UseChromaKey { get; set; } = false;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public Color ChromaKeyColor { get; set; } = Color.Black;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public int ChromaKeyTolerance { get; set; } = 30;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool IsEyedropperMode { get; set; } = false;
+        public event Action<Color> ColorPicked;
+
         protected override CreateParams CreateParams
         {
             get
@@ -880,6 +1054,20 @@ namespace OwOverlays
             this.MouseUp += (s, e) => isMouseDown = false;
             this.MouseClick += (s, e) =>
             {
+                if (IsEyedropperMode && e.Button == MouseButtons.Left)
+                {
+                    // Calculate position in original image coordinates
+                    float scaleX = (float)(isWebP && webpFrames.Count > 0 ? webpFrames[0].Width : (originalImage?.Width ?? 1)) / this.ClientSize.Width;
+                    float scaleY = (float)(isWebP && webpFrames.Count > 0 ? webpFrames[0].Height : (originalImage?.Height ?? 1)) / this.ClientSize.Height;
+                    int imgX = (int)(e.X * scaleX);
+                    int imgY = (int)(e.Y * scaleY);
+
+                    Color picked = GetColorAt(imgX, imgY);
+                    IsEyedropperMode = false;
+                    this.Cursor = Cursors.Default;
+                    ColorPicked?.Invoke(picked);
+                    return;
+                }
                 if (e.Button == MouseButtons.Right && !_isLocked)
                     RequestRemove?.Invoke(this, EventArgs.Empty);
             };
@@ -995,6 +1183,22 @@ namespace OwOverlays
             base.OnFormClosed(e);
         }
 
+        public Color GetColorAt(int x, int y)
+        {
+            Bitmap target = null;
+            if (isWebP && webpFrames.Count > 0)
+                target = webpFrames[0];
+            else if (originalImage is Bitmap bmp)
+                target = bmp;
+            else if (originalImage != null)
+                target = new Bitmap(originalImage);
+
+            if (target == null || x < 0 || y < 0 || x >= target.Width || y >= target.Height)
+                return Color.Black;
+
+            return target.GetPixel(x, y);
+        }
+
         private void MakeTransparent()
         {
             if (this.IsDisposed) return;
@@ -1049,6 +1253,11 @@ namespace OwOverlays
                     }
                 }
 
+                if (UseChromaKey)
+                {
+                    ApplyChromaKey(bmp, ChromaKeyColor, ChromaKeyTolerance);
+                }
+
                 IntPtr screenDc = GetDC(IntPtr.Zero);
                 IntPtr memDc = CreateCompatibleDC(screenDc);
                 IntPtr hBmp = bmp.GetHbitmap(Color.FromArgb(0));
@@ -1065,6 +1274,50 @@ namespace OwOverlays
                 DeleteDC(memDc);
                 ReleaseDC(IntPtr.Zero, screenDc);
             }
+        }
+
+        private void ApplyChromaKey(Bitmap bmp, Color chromaColor, int tolerance)
+        {
+            var rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+            var bmpData = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+
+            unsafe
+            {
+                byte* ptr = (byte*)bmpData.Scan0;
+                int stride = bmpData.Stride;
+
+                for (int y = 0; y < bmp.Height; y++)
+                {
+                    for (int x = 0; x < bmp.Width; x++)
+                    {
+                        int idx = y * stride + x * 4;
+                        byte b = ptr[idx];
+                        byte g = ptr[idx + 1];
+                        byte r = ptr[idx + 2];
+                        byte a = ptr[idx + 3];
+
+                        // Calculate color distance
+                        int dr = r - chromaColor.R;
+                        int dg = g - chromaColor.G;
+                        int db = b - chromaColor.B;
+                        double distance = Math.Sqrt(dr * dr + dg * dg + db * db);
+
+                        if (distance <= tolerance)
+                        {
+                            // Full transparency for close colors
+                            ptr[idx + 3] = 0;
+                        }
+                        else if (distance <= tolerance * 1.5)
+                        {
+                            // Graduated transparency for edge colors
+                            double factor = (distance - tolerance) / (tolerance * 0.5);
+                            ptr[idx + 3] = (byte)(a * factor);
+                        }
+                    }
+                }
+            }
+
+            bmp.UnlockBits(bmpData);
         }
 
         [DllImport("user32.dll")]
@@ -1130,6 +1383,9 @@ namespace OwOverlays
         public int X { get; set; }
         public int Y { get; set; }
         public OverlayOrientation Orientation { get; set; } = OverlayOrientation.Inferior;
+        public bool UseChromaKey { get; set; } = false;
+        public string ChromaKeyColorHex { get; set; } = "#000000";
+        public int ChromaKeyTolerance { get; set; } = 30;
 
         public OverlayConfig()
         {
@@ -1141,6 +1397,9 @@ namespace OwOverlays
             X = overlay.Location.X;
             Y = overlay.Location.Y;
             Orientation = overlay.Orientation;
+            UseChromaKey = overlay.UseChromaKey;
+            ChromaKeyColorHex = ColorTranslator.ToHtml(overlay.ChromaKeyColor);
+            ChromaKeyTolerance = overlay.ChromaKeyTolerance;
         }
     }
 
