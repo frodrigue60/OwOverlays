@@ -276,9 +276,9 @@ namespace OwOverlays
                         {
                             var overlay = new OverlayForm(config.FilePath, GifHeight);
                             overlay.Orientation = config.Orientation;
+                            overlay.Show();
                             overlay.UpdateWindowSize();
                             overlay.Location = new Point(config.X, config.Y);
-                            overlay.Show();
                             overlay.RequestRemove += Overlay_RequestRemove;
                             overlays.Add(overlay);
                             lstOverlays.Items.Add(Path.GetFileName(config.FilePath));
