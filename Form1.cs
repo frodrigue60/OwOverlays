@@ -37,12 +37,12 @@ namespace OwOverlays
         private bool isPaused = false;
         private const string ConfigFile = "GifOverlayConfig.json";
         private AppSettings currentSettings = new AppSettings();
-        private ComboBox orientationDropdown;
-        private Label lblOrientation;
         private bool isUpdatingUI = false;
         private ColorDialog colorDialog;
         private CheckBox chkChromaKey;
         private Button btnChromaColor;
+        private ComboBox screenSelector;
+        private Label lblScreen;
 
 
         public static int GifHeight { get; private set; } = 100;
@@ -124,22 +124,21 @@ namespace OwOverlays
             chkLockOverlays.CheckedChanged += ChkLockOverlays_CheckedChanged;
             this.Controls.Add(chkLockOverlays);
 
-            lblOrientation = new Label();
-            lblOrientation.Text = "Borde:";
-            lblOrientation.Location = new Point(10, 375);
-            lblOrientation.Size = new Size(180, 25);
-            this.Controls.Add(lblOrientation);
+            lblScreen = new Label();
+            lblScreen.Text = "Pantalla (Monitor):";
+            lblScreen.Location = new Point(10, 375);
+            lblScreen.Size = new Size(180, 25);
+            this.Controls.Add(lblScreen);
 
-            orientationDropdown = new ComboBox();
-            orientationDropdown.Location = new Point(200, 375);
-            orientationDropdown.Size = new Size(175, 25);
-            orientationDropdown.DropDownStyle = ComboBoxStyle.DropDownList;
-            orientationDropdown.BackColor = controlBack;
-            orientationDropdown.ForeColor = Color.White;
-            orientationDropdown.DataSource = Enum.GetValues(typeof(OverlayOrientation));
-            orientationDropdown.Enabled = false;
-            orientationDropdown.SelectedIndexChanged += OrientationDropdown_SelectedIndexChanged;
-            this.Controls.Add(orientationDropdown);
+            screenSelector = new ComboBox();
+            screenSelector.Location = new Point(200, 375);
+            screenSelector.Size = new Size(175, 25);
+            screenSelector.DropDownStyle = ComboBoxStyle.DropDownList;
+            screenSelector.BackColor = controlBack;
+            screenSelector.ForeColor = Color.White;
+            screenSelector.Enabled = false;
+            screenSelector.SelectedIndexChanged += ScreenSelector_SelectedIndexChanged;
+            this.Controls.Add(screenSelector);
 
             chkChromaKey = new CheckBox();
             chkChromaKey.Text = "Usar Chroma Key (Remover fondo)";
@@ -325,6 +324,7 @@ namespace OwOverlays
                             overlay.UseChromaKey = config.UseChromaKey;
                             overlay.ChromaKeyColor = ColorTranslator.FromHtml(config.ChromaKeyColorHex);
                             overlay.ChromaKeyTolerance = config.ChromaKeyTolerance;
+                            overlay.ScreenIndex = config.ScreenIndex;
                             overlay.Show();
                             overlay.UpdateWindowSize();
                             overlay.Location = new Point(config.X, config.Y);
@@ -391,8 +391,18 @@ namespace OwOverlays
             if (selectedIndex >= 0 && selectedIndex < overlays.Count)
             {
                 var selectedOverlay = overlays[selectedIndex];
-                orientationDropdown.Enabled = true;
-                orientationDropdown.SelectedItem = selectedOverlay.Orientation;
+
+                // Screen selector
+                screenSelector.Enabled = true;
+                screenSelector.Items.Clear();
+                for (int i = 0; i < Screen.AllScreens.Length; i++)
+                {
+                    screenSelector.Items.Add($"Pantalla {i + 1} ({Screen.AllScreens[i].Bounds.Width}x{Screen.AllScreens[i].Bounds.Height})");
+                }
+                if (selectedOverlay.ScreenIndex >= 0 && selectedOverlay.ScreenIndex < screenSelector.Items.Count)
+                    screenSelector.SelectedIndex = selectedOverlay.ScreenIndex;
+                else
+                    screenSelector.SelectedIndex = 0;
 
                 chkChromaKey.Enabled = true;
                 chkChromaKey.Checked = selectedOverlay.UseChromaKey;
@@ -413,7 +423,7 @@ namespace OwOverlays
             }
             else
             {
-                orientationDropdown.Enabled = false;
+                screenSelector.Enabled = false;
                 chkChromaKey.Enabled = false;
                 btnChromaColor.Enabled = false;
 
@@ -455,62 +465,24 @@ namespace OwOverlays
             UpdateSelectionState();
         }
 
-        private void OrientationDropdown_SelectedIndexChanged(object sender, EventArgs e)
+        private void ScreenSelector_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (isUpdatingUI) return;
-
-            if (selectedIndex >= 0)
+            if (selectedIndex >= 0 && selectedIndex < overlays.Count && screenSelector.SelectedIndex >= 0)
             {
                 var selectedOverlay = overlays[selectedIndex];
-                OverlayOrientation oldOrientation = selectedOverlay.Orientation;
-                OverlayOrientation newOrientation = (OverlayOrientation)orientationDropdown.SelectedItem;
+                int newScreenIndex = screenSelector.SelectedIndex;
 
-                if (oldOrientation != newOrientation)
+                if (newScreenIndex < Screen.AllScreens.Length && newScreenIndex != selectedOverlay.ScreenIndex)
                 {
-                    selectedOverlay.Orientation = newOrientation;
-                    selectedOverlay.UpdateWindowSize();
+                    Screen newScreen = Screen.AllScreens[newScreenIndex];
+                    selectedOverlay.ScreenIndex = newScreenIndex;
 
-                    if ((oldOrientation == OverlayOrientation.Izquierda ||
-                         oldOrientation == OverlayOrientation.Derecha) &&
-                        (newOrientation == OverlayOrientation.Izquierda ||
-                         newOrientation == OverlayOrientation.Derecha))
-                    {
-                        if (newOrientation == OverlayOrientation.Izquierda)
-                            selectedOverlay.Location = new Point(0, selectedOverlay.Location.Y);
-                        else
-                            selectedOverlay.Location = new Point(screenWidth - selectedOverlay.Width,
-                                selectedOverlay.Location.Y);
-                    }
-                    else if ((oldOrientation == OverlayOrientation.Superior ||
-                              oldOrientation == OverlayOrientation.Inferior) &&
-                             (newOrientation == OverlayOrientation.Superior ||
-                              newOrientation == OverlayOrientation.Inferior))
-                    {
-                        if (newOrientation == OverlayOrientation.Superior)
-                            selectedOverlay.Location = new Point(selectedOverlay.Location.X, 0);
-                        else selectedOverlay.Location = new Point(selectedOverlay.Location.X, baseY);
-                    }
-                    else
-                    {
-                        switch (newOrientation)
-                        {
-                            case OverlayOrientation.Inferior:
-                                selectedOverlay.Location = new Point(selectedOverlay.Location.X, baseY);
-                                break;
-                            case OverlayOrientation.Superior:
-                                selectedOverlay.Location = new Point(selectedOverlay.Location.X, 0);
-                                break;
-                            case OverlayOrientation.Izquierda:
-                                selectedOverlay.Location = new Point(0, selectedOverlay.Location.Y);
-                                break;
-                            case OverlayOrientation.Derecha:
-                                selectedOverlay.Location = new Point(screenWidth - selectedOverlay.Width,
-                                    selectedOverlay.Location.Y);
-                                break;
-                        }
-                    }
+                    // Move to center of new screen
+                    int centerX = newScreen.Bounds.Left + (newScreen.Bounds.Width - selectedOverlay.Width) / 2;
+                    int centerY = newScreen.Bounds.Top + (newScreen.Bounds.Height - selectedOverlay.Height) / 2;
+                    selectedOverlay.Location = new Point(centerX, centerY);
 
-                    selectedOverlay.RefreshTransparency();
                     SaveConfig();
                 }
             }
@@ -958,6 +930,9 @@ namespace OwOverlays
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool IsSelected { get; set; } = false;
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public int ScreenIndex { get; set; } = 0;
+
         private System.Windows.Forms.Timer animationTimer;
         private SDImage originalImage;
         private bool isWebP;
@@ -1386,6 +1361,7 @@ namespace OwOverlays
         public bool UseChromaKey { get; set; } = false;
         public string ChromaKeyColorHex { get; set; } = "#000000";
         public int ChromaKeyTolerance { get; set; } = 30;
+        public int ScreenIndex { get; set; } = 0;
 
         public OverlayConfig()
         {
@@ -1400,6 +1376,7 @@ namespace OwOverlays
             UseChromaKey = overlay.UseChromaKey;
             ChromaKeyColorHex = ColorTranslator.ToHtml(overlay.ChromaKeyColor);
             ChromaKeyTolerance = overlay.ChromaKeyTolerance;
+            ScreenIndex = overlay.ScreenIndex;
         }
     }
 

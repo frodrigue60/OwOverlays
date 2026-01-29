@@ -1,43 +1,49 @@
 # Changelog
 
-Todas las mejoras notables de este proyecto serán documentadas en este archivo.
+Todos los cambios notables de este proyecto se documentarán en este archivo.
 
-## [v1.2.0] - 2026-01-28 "The Visual Update"
+## [1.2.0] - 2026-01-28
 
-### Añadido
+### Agregado
 
-- **Soporte WebP Animado:** Integración completa con `ImageSharp` para reproducir archivos `.webp` con transparencia y tiempos de frame variables.
-- **Soporte de Imagen Estática:** Ahora se pueden cargar archivos `.png`, `.jpg` y `.jpeg` como overlays fijos.
-- **Chroma Key Avanzado:**
-  - Opción "Usar Chroma Key" independiente por overlay.
-  - **Herramienta Gotero:** Permite seleccionar el color exacto del fondo haciendo clic en el overlay.
-  - **Selector de Color:** Selección manual de color mediante diálogo estándar.
-  - **Slider de Tolerancia:** Ajuste de precisión (10-150) para suavizar bordes y eliminar colores similares.
-- **Modo Gotero Interactivo:** Cursor en forma de cruz al seleccionar colores para mejor precisión.
+- **Soporte Multi-Monitor:** Nuevo selector de pantalla para mover overlays entre monitores.
+- **Auto-Rotación:** Los overlays rotan automáticamente al arrastrarse a los bordes de pantalla.
+- **Slider de Tolerancia Contextual:** El slider de tolerancia de Chroma Key solo se habilita cuando Chroma Key está activo.
+- **Tolerancia Extendida:** Rango de tolerancia aumentado de 10-100 a 10-150.
+
+### Cambiado
+
+- Reemplazado el control de orientación manual por selector de pantalla.
+- Los overlays ahora persisten su configuración de monitor entre sesiones.
+
+### Eliminado
+
+- ComboBox de orientación manual (ahora es automático por snap a bordes).
+
+---
+
+## [1.1.0] - 2026-01-28
+
+### Agregado
+
+- **Chroma Key con Tolerancia:** Algoritmo mejorado de eliminación de fondo con slider de tolerancia.
+- **Gotero de Color:** Selección visual del color de chroma directamente desde el overlay.
+- **Soporte WebP:** Animaciones WebP ahora son soportadas junto con GIF.
+- **Grid UI:** Nueva cuadrícula visual para gestionar overlays con miniaturas.
 
 ### Mejorado
 
-- El slider de tolerancia solo se habilita cuando el Chroma Key está activo.
-- Persistencia de datos actualizada para incluir configuraciones de Chroma y tolerancia.
+- Bordes suavizados en Chroma Key para resultados más naturales.
+- Optimización de rendimiento en animaciones.
 
-## [v1.1.0] - 2026-01-27 "Performance & Grid"
+---
 
-### Añadido
-
-- **Grid UI:** Nueva interfaz de cuadrícula con miniaturas para gestionar los overlays.
-- **Pausa Inteligente:** Opción en la bandeja del sistema para pausar/reanudar todas las animaciones y liberar CPU/GPU.
-- **Previsualización Transparente:** Las miniaturas en el grid respetan la transparencia del archivo original.
-
-### Corregido
-
-- **Inicialización Fluida:** Eliminado el parpadeo blanco/negro al abrir nuevos overlays; ahora aparecen con el tamaño y posición correctos instantáneamente.
-- **Iconos:** Integración de iconos como recursos embebidos para builds de un solo archivo.
-
-## [v1.0.0] - 2026-01-26
+## [1.0.0] - 2026-01-27
 
 ### Lanzamiento Inicial
 
-- Visualización de GIFs animados con fondo transparente.
-- Posicionamiento y redimensionamiento básico.
-- Menú de bandeja del sistema.
-- Guardado automático de configuración.
+- Overlays de GIF animados con transparencia real por píxel.
+- Snap automático a bordes de pantalla.
+- Bloqueo/desbloqueo de overlays.
+- Persistencia de configuración.
+- Ejecución en System Tray.

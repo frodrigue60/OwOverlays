@@ -5,11 +5,13 @@ OwOverlays es una aplicación ligera para Windows que permite superponer GIFs an
 ## Características
 
 - **Formatos Soportados:** Soporte completo para **GIF, WebP** (animados), **PNG y JPG** (estáticos).
+- **Multi-Monitor:** Soporte para múltiples pantallas con selector de monitor y persistencia de configuración por overlay.
+- **Auto-Rotación:** Los overlays rotan automáticamente cuando se arrastran a los bordes de la pantalla (inferior, superior, izquierda, derecha).
 - **Chroma Key (Pantalla Verde):** Elimina cualquier color de fondo con un solo clic. Incluye **gotero** y slider de **tolerancia** para bordes perfectos.
 - **Transparencia Real:** Los overlays se integran perfectamente utilizando el canal alfa o chroma key.
 - **Cuadrícula de Gestión:** Interfaz visual moderna para previsualizar y organizar tus overlays.
 - **Optimización de Rendimiento:** Sistema de pausa inteligente que reduce el consumo de CPU a cero cuando no se usa.
-- **Persistencia:** Guarda automáticamente posiciones, tamaños, colores de chroma y configuraciones.
+- **Persistencia:** Guarda automáticamente posiciones, tamaños, colores de chroma, monitor seleccionado y configuraciones.
 - **System Tray:** Se ejecuta discretamente en la bandeja del sistema.
 
 ## Inicio Rápido
