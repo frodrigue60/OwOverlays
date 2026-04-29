@@ -1,40 +1,48 @@
 # OwOverlays
 
-OwOverlays es una aplicación ligera para Windows que permite superponer GIFs animados directamente sobre tu escritorio o cualquier otra ventana con transparencia real por píxel.
+OwOverlays is a lightweight Windows application designed to overlay animated GIFs directly onto the desktop or any other window using true per-pixel transparency.
 
-## Características
+![OwOverlays Preview](assets/preview.png)
 
-- **Formatos Soportados:** Soporte completo para **GIF, WebP** (animados), **PNG y JPG** (estáticos).
-- **Multi-Monitor:** Soporte para múltiples pantallas con selector de monitor y persistencia de configuración por overlay.
-- **Auto-Rotación:** Los overlays rotan automáticamente cuando se arrastran a los bordes de la pantalla (inferior, superior, izquierda, derecha).
-- **Chroma Key (Pantalla Verde):** Elimina cualquier color de fondo con un solo clic. Incluye **gotero** y slider de **tolerancia** para bordes perfectos.
-- **Transparencia Real:** Los overlays se integran perfectamente utilizando el canal alfa o chroma key.
-- **Cuadrícula de Gestión:** Interfaz visual moderna para previsualizar y organizar tus overlays.
-- **Optimización de Rendimiento:** Sistema de pausa inteligente que reduce el consumo de CPU a cero cuando no se usa.
-- **Persistencia:** Guarda automáticamente posiciones, tamaños, colores de chroma, monitor seleccionado y configuraciones.
-- **System Tray:** Se ejecuta discretamente en la bandeja del sistema.
+## Key Features
 
-## Inicio Rápido
+- **Supported Formats:** Full support for **GIF, animated WebP**, **PNG, and JPG** (static).
+- **Multi-Monitor Compatibility:** Support for multiple displays including a monitor selector and persistent per-overlay configuration.
+- **Automatic Rotation:** Overlays automatically rotate when dragged to screen edges (bottom, top, left, right).
+- **Chroma Key (Green Screen):** Background color removal via a single click. Features an **eye-dropper** tool and a **tolerance** slider for precise edge blending.
+- **True Transparency:** Seamless integration using alpha channel or chroma key composition.
+- **Management Grid:** A modern visual interface for previewing and organizing active overlays.
+- **Performance Optimization:** An intelligent pause system that reduces CPU consumption to zero when overlays are hidden or inactive.
+- **Configuration Persistence:** Automatic saving of positions, sizes, chroma settings, monitor selection, and other preferences.
+- **System Tray Integration:** Discrete background execution via the system tray.
 
-1. Descarga la última versión desde la carpeta `dist`.
-2. Ejecuta `OwOverlays.exe`.
-3. Haz clic derecho en el icono de la bandeja (un círculo verde/rojo) para agregar GIFs o mostrar la ventana de gestión.
+## Quick Start
 
-## Desarrollo
+1. Download the latest release from the `dist` folder.
+2. Launch `OwOverlays.exe`.
+3. Right-click the system tray icon (represented by a green/red circle) to add GIFs or access the management window.
 
-Si deseas compilar el proyecto manualmente:
+## Development
+
+To compile the project manually:
 
 ```powershell
 dotnet build
 dotnet run
 ```
 
-Para compilar una versión sin requerimiento de dependencias:
+To generate a standalone executable without external dependencies:
 
 ```powershell
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "./dist"
 ```
 
-## Licencia
+## License
 
-Este proyecto está bajo la licencia MIT.
+This project is distributed under the MIT License.
+
+---
+
+## 🧠 Development Philosophy: Vibecoding
+This project was developed using a **Vibecoding** workflow—a modern approach to software creation where the focus is on high-level intent, creative direction, and rapid AI-assisted iteration. By pairing human architectural vision with advanced AI execution, OwOverlays achieved high technical complexity and a premium feel in record time.
+
