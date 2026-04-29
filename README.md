@@ -43,6 +43,6 @@ This project is distributed under the MIT License.
 
 ---
 
-## 🧠 Development Philosophy: Vibecoding
+## Development Philosophy: Vibecoding
 This project was developed using a **Vibecoding** workflow—a modern approach to software creation where the focus is on high-level intent, creative direction, and rapid AI-assisted iteration. By pairing human architectural vision with advanced AI execution, OwOverlays achieved high technical complexity and a premium feel in record time.
 
