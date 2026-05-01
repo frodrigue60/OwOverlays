@@ -367,13 +367,3 @@ FodyWeavers.xsd
 
 # Publish output directory
 dist/
-log.txt
-app_icon.ico
-app_icon.png
-Form1.txt
-OwOverlay-favicon.png
-OwOverlay-favicon.svg
-OwOverlay-icon.png
-OwOverlay-icon.svg
-tray_icon.ico
-tray_icon.png
