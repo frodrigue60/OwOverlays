@@ -22,38 +22,39 @@ namespace OwOverlays
 {
     public partial class Form1 : Form
     {
-        private NotifyIcon trayIcon;
-        private ContextMenuStrip trayMenu;
+        private NotifyIcon? trayIcon;
+        private ContextMenuStrip? trayMenu;
         private List<OverlayForm> overlays = new List<OverlayForm>();
-        private FlowLayoutPanel gridOverlays;
+        private FlowLayoutPanel gridOverlays = null!;
         private int selectedIndex = -1;
-        private Button btnAdd;
-        private Button btnRemove;
-        private NumericUpDown heightInput;
-        private Label lblHeight;
-        private CheckBox TaskbarHeightCheck;
-        private CheckBox chkLockOverlays;
+        private Button btnAdd = null!;
+        private Button btnRemove = null!;
+        private NumericUpDown heightInput = null!;
+        private Label lblHeight = null!;
+        private CheckBox TaskbarHeightCheck = null!;
+        private CheckBox chkLockOverlays = null!;
         private bool IsLocked;
         private bool isPaused = false;
         private const string ConfigFile = "GifOverlayConfig.json";
         private AppSettings currentSettings = new AppSettings();
         private bool isUpdatingUI = false;
-        private ColorDialog colorDialog;
-        private CheckBox chkChromaKey;
-        private Button btnChromaColor;
-        private ComboBox screenSelector;
-        private Label lblScreen;
+        private ColorDialog colorDialog = null!;
+        private CheckBox chkChromaKey = null!;
+        private Button btnChromaColor = null!;
+        private ComboBox screenSelector = null!;
+        private Label lblScreen = null!;
 
 
         public static int GifHeight { get; private set; } = 100;
         private const int MaxGifHeight = 400;
-        private int screenHeight = Screen.PrimaryScreen.Bounds.Height;
-        private int screenWidth = Screen.PrimaryScreen.Bounds.Width;
-        private int taskbarHeight = Screen.PrimaryScreen.Bounds.Height - Screen.PrimaryScreen.WorkingArea.Height;
+        private int screenHeight = Screen.PrimaryScreen?.Bounds.Height ?? 1080;
+        private int screenWidth = Screen.PrimaryScreen?.Bounds.Width ?? 1920;
+        private int taskbarHeight = (Screen.PrimaryScreen?.Bounds.Height ?? 1080) - (Screen.PrimaryScreen?.WorkingArea.Height ?? 1040);
         private int baseY;
 
 
-        public static Form1 Instance { get; private set; }
+        public static Form1 Instance { get; private set; } = null!;
+        public bool RespectTaskbarSetting => TaskbarHeightCheck.Checked;
 
         public List<OverlayForm> Overlays => overlays;
 
@@ -63,143 +64,129 @@ namespace OwOverlays
             baseY = screenHeight - taskbarHeight - GifHeight;
 
             this.Text = "OwOverlays";
-            this.Size = new Size(400, 450);
             this.BackColor = Color.FromArgb(30, 30, 30);
             this.ForeColor = Color.White;
             this.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
-            this.MaximizeBox = false;
+            this.MaximizeBox = true;
+            this.AutoSize = true;
+            this.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            this.Padding = new Padding(0, 0, 15, 15);
 
             Color controlBack = Color.FromArgb(45, 45, 45);
             Color accentColor = Color.FromArgb(0, 120, 212);
 
+            // --- Contenedor Principal ---
+            FlowLayoutPanel mainContainer = new FlowLayoutPanel();
+            mainContainer.FlowDirection = FlowDirection.TopDown;
+            mainContainer.WrapContents = false;
+            mainContainer.AutoSize = true;
+            mainContainer.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            mainContainer.Padding = new Padding(10);
+            this.Controls.Add(mainContainer);
+
+            // 1. Grid de Overlays
             gridOverlays = new FlowLayoutPanel();
-            gridOverlays.Location = new Point(10, 10);
             gridOverlays.Size = new Size(365, 200);
             gridOverlays.BackColor = controlBack;
             gridOverlays.AutoScroll = true;
             gridOverlays.Padding = new Padding(5);
-            this.Controls.Add(gridOverlays);
+            gridOverlays.Margin = new Padding(0, 0, 0, 10);
+            mainContainer.Controls.Add(gridOverlays);
 
-            btnAdd = CreateModernButton("Agregar GIF", new Point(10, 220), new Size(175, 35), accentColor);
+            // 2. Fila de Botones Principales
+            FlowLayoutPanel rowButtons = CreateRowLayout();
+            btnAdd = CreateModernButton("Agregar GIF", Point.Empty, new Size(180, 35), accentColor);
             btnAdd.Click += BtnAdd_Click;
-            this.Controls.Add(btnAdd);
-
-            btnRemove = CreateModernButton("Eliminar", new Point(200, 220), new Size(175, 35),
-                Color.FromArgb(200, 50, 50));
+            btnRemove = CreateModernButton("Eliminar", Point.Empty, new Size(180, 35), Color.FromArgb(200, 50, 50));
             btnRemove.Click += BtnRemove_Click;
-            this.Controls.Add(btnRemove);
+            rowButtons.Controls.Add(btnAdd);
+            rowButtons.Controls.Add(btnRemove);
+            mainContainer.Controls.Add(rowButtons);
 
-            lblHeight = new Label();
-            lblHeight.Text = "Altura del Overlay (px):";
-            lblHeight.Location = new Point(10, 275);
-            lblHeight.Size = new Size(180, 25);
-            this.Controls.Add(lblHeight);
-
-            heightInput = new NumericUpDown();
-            heightInput.Location = new Point(200, 275);
-            heightInput.Size = new Size(175, 25);
-            heightInput.BackColor = controlBack;
-            heightInput.ForeColor = Color.White;
-            heightInput.BorderStyle = BorderStyle.FixedSingle;
-            heightInput.Minimum = 10;
-            heightInput.Maximum = MaxGifHeight;
-            heightInput.Value = GifHeight;
+            // 3. Fila de Altura
+            FlowLayoutPanel rowHeight = CreateRowLayout();
+            lblHeight = new Label { Text = "Altura del Overlay (px):", AutoSize = true, Margin = new Padding(0, 7, 0, 0) };
+            heightInput = new NumericUpDown { Size = new Size(175, 25), BackColor = controlBack, ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Minimum = 10, Maximum = MaxGifHeight, Value = GifHeight };
             heightInput.ValueChanged += HeightInput_ValueChanged;
-            this.Controls.Add(heightInput);
+            rowHeight.Controls.Add(lblHeight);
+            rowHeight.Controls.Add(heightInput);
+            mainContainer.Controls.Add(rowHeight);
 
-            TaskbarHeightCheck = new CheckBox();
-            TaskbarHeightCheck.Text = "Respetar barra de tareas";
-            TaskbarHeightCheck.Checked = true;
-            TaskbarHeightCheck.Location = new Point(10, 310);
-            TaskbarHeightCheck.Size = new Size(360, 25);
+            // 4. Checks de Sistema
+            TaskbarHeightCheck = new CheckBox { Text = "Respetar barra de tareas", Checked = true, AutoSize = true, Margin = new Padding(0, 5, 0, 5) };
             TaskbarHeightCheck.CheckedChanged += TaskbarHeightCheck_CheckedChanged;
-            this.Controls.Add(TaskbarHeightCheck);
+            mainContainer.Controls.Add(TaskbarHeightCheck);
 
-            chkLockOverlays = new CheckBox();
-            chkLockOverlays.Text = "Bloquear posiciones (Click-through)";
-            chkLockOverlays.Checked = true;
-            chkLockOverlays.Location = new Point(10, 340);
-            chkLockOverlays.Size = new Size(365, 25);
+            chkLockOverlays = new CheckBox { Text = "Bloquear posiciones (Click-through)", Checked = true, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
             chkLockOverlays.CheckedChanged += ChkLockOverlays_CheckedChanged;
-            this.Controls.Add(chkLockOverlays);
+            mainContainer.Controls.Add(chkLockOverlays);
 
-            lblScreen = new Label();
-            lblScreen.Text = "Pantalla (Monitor):";
-            lblScreen.Location = new Point(10, 375);
-            lblScreen.Size = new Size(180, 25);
-            this.Controls.Add(lblScreen);
-
-            screenSelector = new ComboBox();
-            screenSelector.Location = new Point(200, 375);
-            screenSelector.Size = new Size(175, 25);
-            screenSelector.DropDownStyle = ComboBoxStyle.DropDownList;
-            screenSelector.BackColor = controlBack;
-            screenSelector.ForeColor = Color.White;
-            screenSelector.Enabled = false;
+            // 5. Fila de Pantalla
+            FlowLayoutPanel rowScreen = CreateRowLayout();
+            lblScreen = new Label { Text = "Pantalla (Monitor):", AutoSize = true, Margin = new Padding(0, 7, 0, 0) };
+            screenSelector = new ComboBox { Size = new Size(175, 25), DropDownStyle = ComboBoxStyle.DropDownList, BackColor = controlBack, ForeColor = Color.White, Enabled = false };
             screenSelector.SelectedIndexChanged += ScreenSelector_SelectedIndexChanged;
-            this.Controls.Add(screenSelector);
+            rowScreen.Controls.Add(lblScreen);
+            rowScreen.Controls.Add(screenSelector);
+            mainContainer.Controls.Add(rowScreen);
 
-            chkChromaKey = new CheckBox();
-            chkChromaKey.Text = "Usar Chroma Key (Remover fondo)";
-            chkChromaKey.Location = new Point(10, 410);
-            chkChromaKey.Size = new Size(185, 25);
-            chkChromaKey.Enabled = false;
-            chkChromaKey.ForeColor = Color.White;
+            // 6. Fila de Chroma Key
+            chkChromaKey = new CheckBox { Text = "Chroma Key (Quitar fondo)", AutoSize = true, Enabled = false, Margin = new Padding(0, 5, 0, 5) };
             chkChromaKey.CheckedChanged += ChkChromaKey_CheckedChanged;
-            this.Controls.Add(chkChromaKey);
+            mainContainer.Controls.Add(chkChromaKey);
 
-            btnChromaColor = CreateModernButton("Color", new Point(200, 410), new Size(80, 25), Color.Black);
+            FlowLayoutPanel rowChromaTools = CreateRowLayout();
+            btnChromaColor = CreateModernButton("Color", Point.Empty, new Size(115, 25), Color.Black);
             btnChromaColor.Enabled = false;
             btnChromaColor.Click += BtnChromaColor_Click;
-            this.Controls.Add(btnChromaColor);
-
-            Button btnEyedropper = CreateModernButton("Gotero", new Point(290, 410), new Size(85, 25), Color.FromArgb(60, 60, 60));
+            
+            Button btnEyedropper = CreateModernButton("Gotero", Point.Empty, new Size(115, 25), Color.FromArgb(60, 60, 60));
             btnEyedropper.Name = "btnEyedropper";
             btnEyedropper.Enabled = false;
             btnEyedropper.Click += BtnEyedropper_Click;
-            this.Controls.Add(btnEyedropper);
+
+            rowChromaTools.Controls.Add(btnChromaColor);
+            rowChromaTools.Controls.Add(btnEyedropper);
+            mainContainer.Controls.Add(rowChromaTools);
+
+            // 7. Fila de Tolerancia
+            FlowLayoutPanel rowTolerance = CreateRowLayout();
+            Label lblTolerance = new Label { Text = "Tolerancia: 30", Name = "lblTolerance", ForeColor = Color.White, Font = new Font("Segoe UI", 8F), AutoSize = true, Margin = new Padding(0, 5, 0, 0) };
+            TrackBar trackTolerance = new TrackBar { Name = "trackTolerance", Minimum = 10, Maximum = 150, Value = 30, TickFrequency = 20, Size = new Size(240, 30), Enabled = false };
+            trackTolerance.ValueChanged += TrackTolerance_ValueChanged;
+            rowTolerance.Controls.Add(lblTolerance);
+            rowTolerance.Controls.Add(trackTolerance);
+            mainContainer.Controls.Add(rowTolerance);
+
+            // 9. Presets (Importar/Exportar)
+            FlowLayoutPanel rowPresets = CreateRowLayout();
+            Button btnSavePreset = CreateModernButton("Exportar Preset", Point.Empty, new Size(180, 30), Color.FromArgb(60, 60, 60));
+            btnSavePreset.Click += (s, e) => ExportPreset();
+            Button btnLoadPreset = CreateModernButton("Importar Preset", Point.Empty, new Size(180, 30), Color.FromArgb(60, 60, 60));
+            btnLoadPreset.Click += (s, e) => ImportPreset();
+            rowPresets.Controls.Add(btnSavePreset);
+            rowPresets.Controls.Add(btnLoadPreset);
+            mainContainer.Controls.Add(rowPresets);
+
+            // 10. Ayuda
+            Label lblHelp = new Label { Text = "Tip: Click derecho sobre un GIF desbloqueado para cerrar.", ForeColor = Color.Gray, Font = new Font("Segoe UI", 8F), AutoSize = true, Margin = new Padding(0, 10, 0, 0) };
+            mainContainer.Controls.Add(lblHelp);
 
             colorDialog = new ColorDialog();
 
-            Label lblTolerance = new Label();
-            lblTolerance.Text = "Tolerancia: 30";
-            lblTolerance.Name = "lblTolerance";
-            lblTolerance.ForeColor = Color.White;
-            lblTolerance.Font = new Font("Segoe UI", 8F);
-            lblTolerance.Location = new Point(10, 440);
-            lblTolerance.Size = new Size(90, 20);
-            this.Controls.Add(lblTolerance);
-
-            TrackBar trackTolerance = new TrackBar();
-            trackTolerance.Name = "trackTolerance";
-            trackTolerance.Minimum = 10;
-            trackTolerance.Maximum = 150;
-            trackTolerance.Value = 30;
-            trackTolerance.TickFrequency = 20;
-            trackTolerance.Location = new Point(100, 435);
-            trackTolerance.Size = new Size(275, 30);
-            trackTolerance.Enabled = false;
-            trackTolerance.ValueChanged += TrackTolerance_ValueChanged;
-            this.Controls.Add(trackTolerance);
-
-            Label lblHelp = new Label();
-            lblHelp.Text = "Tip: Click derecho sobre un GIF desbloqueado para cerrar.";
-            lblHelp.ForeColor = Color.Gray;
-            lblHelp.Font = new Font("Segoe UI", 8F);
-            lblHelp.Location = new Point(10, 475);
-            lblHelp.Size = new Size(360, 20);
-            this.Controls.Add(lblHelp);
-
-            this.Size = new Size(400, 550);
+            //this.Size = new Size(400, 550); // Removed for AutoSize
 
             trayIcon = new NotifyIcon();
-            trayIcon.Text = "Gestor de Overlays GIF";
-            trayIcon.Visible = true;
+            if (trayIcon != null)
+            {
+                trayIcon.Text = "Gestor de Overlays GIF";
+                trayIcon.Visible = true;
+            }
 
             try
             {
-                trayIcon.Icon = new Icon("tray_icon.ico");
+                if (trayIcon != null) trayIcon.Icon = new Icon("tray_icon.ico");
             }
             catch
             {
@@ -208,22 +195,22 @@ namespace OwOverlays
                 {
                     g.Clear(Color.Cyan);
                     g.FillEllipse(Brushes.Magenta, 2, 2, 12, 12);
-                    trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
+                    if (trayIcon != null) trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
                 }
             }
 
             trayMenu = new ContextMenuStrip();
             trayMenu.Items.Add("Mostrar ventana", null, (s, e) => this.ShowWindow());
-            trayMenu.Items.Add("Agregar GIF", null, (s, e) => BtnAdd_Click(null, null));
+            trayMenu.Items.Add("Agregar GIF", null, (s, e) => BtnAdd_Click(null, EventArgs.Empty));
             trayMenu.Items.Add(new ToolStripSeparator());
             trayMenu.Items.Add($"Bloquear overlays: {(IsLocked ? "ON" : "OFF")}", null,
                 (s, e) => { chkLockOverlays.Checked = !chkLockOverlays.Checked; });
             trayMenu.Items.Add("Pausar visualización", null, (s, e) => TogglePause());
             trayMenu.Items.Add("Salir", null, (s, e) => ExitApplication());
 
-            trayIcon.ContextMenuStrip = trayMenu;
+            if (trayIcon != null) trayIcon.ContextMenuStrip = trayMenu;
 
-            trayIcon.DoubleClick += (s, e) => this.ShowWindow();
+            if (trayIcon != null) trayIcon.DoubleClick += (s, e) => this.ShowWindow();
             this.Resize += (s, e) =>
             {
                 if (this.WindowState == FormWindowState.Minimized)
@@ -256,60 +243,60 @@ namespace OwOverlays
 
         private string ConfigPath => Path.Combine(Application.StartupPath, ConfigFile);
 
-        private void SaveConfig()
+        public void SaveConfig(string? customPath = null)
         {
+            string path = customPath ?? ConfigPath;
             try
             {
-                if (overlays.Count == 0)
+                currentSettings.Overlays = overlays.Select(o => new OverlayConfig
                 {
-                    if (File.Exists(ConfigPath))
-                        File.Delete(ConfigPath);
-                    return;
-                }
-
-                currentSettings.Overlays.Clear();
-
-                foreach (var overlay in overlays)
-                {
-                    if (!string.IsNullOrEmpty(overlay.GifFilePath) && File.Exists(overlay.GifFilePath))
-                    {
-                        currentSettings.Overlays.Add(new OverlayConfig(
-                            overlay,
-                            overlay.GifFilePath
-                        ));
-                    }
-                }
-
-                currentSettings.IsLocked = IsLocked;
-                currentSettings.RespectTaskbar = TaskbarHeightCheck.Checked;
+                    FilePath = o.GifFilePath,
+                    X = o.Location.X,
+                    Y = o.Location.Y,
+                    Orientation = o.Orientation,
+                    UseChromaKey = o.UseChromaKey,
+                    ChromaKeyColorHex = ColorTranslator.ToHtml(o.ChromaKeyColor),
+                    ChromaKeyTolerance = o.ChromaKeyTolerance,
+                    ScreenIndex = o.ScreenIndex
+                }).ToList();
                 currentSettings.GifHeight = GifHeight;
+                currentSettings.RespectTaskbar = TaskbarHeightCheck.Checked;
+                currentSettings.IsLocked = IsLocked;
 
-                string json = JsonConvert.SerializeObject(currentSettings, Newtonsoft.Json.Formatting.Indented);
-                File.WriteAllText(ConfigPath, json);
+                string json = JsonConvert.SerializeObject(currentSettings, Formatting.Indented);
+                File.WriteAllText(path, json);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al guardar configuracin: {ex.Message}", "Error", MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
+                if (customPath != null) MessageBox.Show("Error al guardar preset: " + ex.Message);
             }
         }
 
-        private void LoadConfig()
+        private void LoadConfig(string? customPath = null)
         {
-            if (!File.Exists(ConfigPath)) return;
+            string path = customPath ?? ConfigPath;
+            if (!File.Exists(path)) return;
 
             try
             {
-                string json = File.ReadAllText(ConfigPath);
+                string json = File.ReadAllText(path);
                 currentSettings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
 
+                if (customPath != null)
+                {
+                    while (overlays.Count > 0)
+                    {
+                        overlays[0].Close();
+                        overlays.RemoveAt(0);
+                    }
+                }
+
                 GifHeight = currentSettings.GifHeight;
-                heightInput.Value = Math.Min(Math.Max(GifHeight, (decimal)heightInput.Minimum),
-                    (decimal)heightInput.Maximum);
+                if (heightInput != null) heightInput.Value = Math.Min(Math.Max(GifHeight, (decimal)heightInput.Minimum), (decimal)heightInput.Maximum);
 
                 TaskbarHeightCheck.Checked = currentSettings.RespectTaskbar;
                 taskbarHeight = TaskbarHeightCheck.Checked
-                    ? (Screen.PrimaryScreen.Bounds.Height - Screen.PrimaryScreen.WorkingArea.Height)
+                    ? ((Screen.PrimaryScreen?.Bounds.Height ?? 0) - (Screen.PrimaryScreen?.WorkingArea.Height ?? 0))
                     : 0;
                 baseY = screenHeight - taskbarHeight - GifHeight;
 
@@ -317,50 +304,28 @@ namespace OwOverlays
                 {
                     if (File.Exists(config.FilePath))
                     {
-                        try
-                        {
-                            var overlay = new OverlayForm(config.FilePath, GifHeight);
-                            overlay.Orientation = config.Orientation;
-                            overlay.UseChromaKey = config.UseChromaKey;
-                            overlay.ChromaKeyColor = ColorTranslator.FromHtml(config.ChromaKeyColorHex);
-                            overlay.ChromaKeyTolerance = config.ChromaKeyTolerance;
-                            overlay.ScreenIndex = config.ScreenIndex;
-                            overlay.Show();
-                            overlay.UpdateWindowSize();
-                            overlay.Location = new Point(config.X, config.Y);
-                            overlay.RequestRemove += Overlay_RequestRemove;
-                            overlays.Add(overlay);
-                            AddGridItem(config.FilePath);
-                            overlay.RefreshTransparency();
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error cargando overlay: {ex.Message}");
-                        }
+                        var overlay = new OverlayForm(config.FilePath, GifHeight);
+                        overlay.Orientation = config.Orientation;
+                        overlay.UseChromaKey = config.UseChromaKey;
+                        overlay.ChromaKeyColor = ColorTranslator.FromHtml(config.ChromaKeyColorHex);
+                        overlay.ChromaKeyTolerance = config.ChromaKeyTolerance;
+                        overlay.ScreenIndex = config.ScreenIndex;
+                        overlay.Show();
+                        overlay.UpdateWindowSize();
+                        overlay.Location = new Point(config.X, config.Y);
+                        overlay.SetLocked(currentSettings.IsLocked);
+                        overlay.RequestRemove += Overlay_RequestRemove;
+                        overlays.Add(overlay);
                     }
                 }
 
-                chkLockOverlays.CheckedChanged -= ChkLockOverlays_CheckedChanged;
-                chkLockOverlays.Checked = currentSettings.IsLocked;
-                chkLockOverlays.CheckedChanged += ChkLockOverlays_CheckedChanged;
-
                 IsLocked = currentSettings.IsLocked;
-                foreach (var overlay in overlays)
-                    overlay.SetLocked(IsLocked);
-
-                if (trayMenu?.Items.Count > 3)
-                    trayMenu.Items[3].Text = $"Bloquear overlays: {(IsLocked ? "ON" : "OFF")}";
-
-                if (trayMenu?.Items.Count > 4)
-                    trayMenu.Items[4].Text = isPaused ? "Reanudar visualización" : "Pausar visualización";
-
+                chkLockOverlays.Checked = IsLocked;
                 UpdateTrayIcon();
-                UpdateSelectionState();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar configuracin: {ex.Message}\nSe iniciar con valores por defecto.",
-                    "Error de carga", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                if (customPath != null) MessageBox.Show("Error al cargar preset: " + ex.Message);
             }
         }
 
@@ -449,7 +414,7 @@ namespace OwOverlays
             var item = new GifThumbnailItem(filePath, index, Color.FromArgb(0, 120, 212), Color.FromArgb(45, 45, 45));
             item.Click += (s, e) =>
             {
-                selectedIndex = (s as GifThumbnailItem).ItemIndex;
+                selectedIndex = (s as GifThumbnailItem)?.ItemIndex ?? -1;
                 UpdateSelectionState();
             };
             gridOverlays.Controls.Add(item);
@@ -465,7 +430,7 @@ namespace OwOverlays
             UpdateSelectionState();
         }
 
-        private void ScreenSelector_SelectedIndexChanged(object sender, EventArgs e)
+        private void ScreenSelector_SelectedIndexChanged(object? sender, EventArgs e)
         {
             if (isUpdatingUI) return;
             if (selectedIndex >= 0 && selectedIndex < overlays.Count && screenSelector.SelectedIndex >= 0)
@@ -488,7 +453,7 @@ namespace OwOverlays
             }
         }
 
-        private void ChkLockOverlays_CheckedChanged(object sender, EventArgs e)
+        private void ChkLockOverlays_CheckedChanged(object? sender, EventArgs e)
         {
             IsLocked = chkLockOverlays.Checked;
 
@@ -502,7 +467,7 @@ namespace OwOverlays
             SaveConfig();
         }
 
-        private void ChkChromaKey_CheckedChanged(object sender, EventArgs e)
+        private void ChkChromaKey_CheckedChanged(object? sender, EventArgs e)
         {
             if (isUpdatingUI) return;
             if (selectedIndex >= 0 && selectedIndex < overlays.Count)
@@ -517,7 +482,7 @@ namespace OwOverlays
             }
         }
 
-        private void BtnChromaColor_Click(object sender, EventArgs e)
+        private void BtnChromaColor_Click(object? sender, EventArgs e)
         {
             if (selectedIndex >= 0 && selectedIndex < overlays.Count)
             {
@@ -532,7 +497,7 @@ namespace OwOverlays
             }
         }
 
-        private void BtnEyedropper_Click(object sender, EventArgs e)
+        private void BtnEyedropper_Click(object? sender, EventArgs e)
         {
             if (selectedIndex >= 0 && selectedIndex < overlays.Count)
             {
@@ -547,7 +512,7 @@ namespace OwOverlays
                 overlay.BringToFront();
 
                 // Subscribe to color picked event (one-time)
-                Action<Color> handler = null;
+                Action<Color>? handler = null;
                 handler = (pickedColor) =>
                 {
                     overlay.ChromaKeyColor = pickedColor;
@@ -574,7 +539,7 @@ namespace OwOverlays
         [DllImport("user32.dll")]
         private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
-        private void TrackTolerance_ValueChanged(object sender, EventArgs e)
+        private void TrackTolerance_ValueChanged(object? sender, EventArgs e)
         {
             if (isUpdatingUI) return;
             if (selectedIndex >= 0 && selectedIndex < overlays.Count && sender is TrackBar t)
@@ -587,10 +552,10 @@ namespace OwOverlays
             }
         }
 
-        private void TaskbarHeightCheck_CheckedChanged(object sender, EventArgs e)
+        private void TaskbarHeightCheck_CheckedChanged(object? sender, EventArgs e)
         {
             taskbarHeight = TaskbarHeightCheck.Checked
-                ? (Screen.PrimaryScreen.Bounds.Height - Screen.PrimaryScreen.WorkingArea.Height)
+                ? ((Screen.PrimaryScreen?.Bounds.Height ?? 0) - (Screen.PrimaryScreen?.WorkingArea.Height ?? 0))
                 : 0;
 
             baseY = screenHeight - taskbarHeight - GifHeight;
@@ -639,7 +604,7 @@ namespace OwOverlays
             }
         }
 
-        private void HeightInput_ValueChanged(object sender, EventArgs e)
+        private void HeightInput_ValueChanged(object? sender, EventArgs e)
         {
             GifHeight = (int)heightInput.Value;
             baseY = screenHeight - taskbarHeight - GifHeight;
@@ -670,7 +635,7 @@ namespace OwOverlays
             SaveConfig();
         }
 
-        private void BtnAdd_Click(object sender, EventArgs e)
+        private void BtnAdd_Click(object? sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "Imágenes soportadas|*.gif;*.webp;*.png;*.jpg;*.jpeg|GIF|*.gif|WebP|*.webp|PNG|*.png|JPG|*.jpg;*.jpeg|Todos|*.*";
@@ -717,7 +682,7 @@ namespace OwOverlays
             }
         }
 
-        private void BtnRemove_Click(object sender, EventArgs e)
+        private void BtnRemove_Click(object? sender, EventArgs e)
         {
             if (selectedIndex >= 0)
             {
@@ -732,7 +697,7 @@ namespace OwOverlays
             }
         }
 
-        private void Overlay_RequestRemove(object sender, EventArgs e)
+        private void Overlay_RequestRemove(object? sender, EventArgs e)
         {
             if (sender is OverlayForm overlay)
             {
@@ -852,6 +817,39 @@ namespace OwOverlays
         }
 
 
+        private void ExportPreset()
+        {
+            using (SaveFileDialog sfd = new SaveFileDialog())
+            {
+                sfd.Filter = "Preset JSON|*.json";
+                sfd.Title = "Exportar Preset de Overlays";
+                sfd.FileName = "mi_preset_overlays.json";
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    SaveConfig(sfd.FileName);
+                    MessageBox.Show("Preset exportado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        private void ImportPreset()
+        {
+            using (OpenFileDialog ofd = new OpenFileDialog())
+            {
+                ofd.Filter = "Preset JSON|*.json";
+                ofd.Title = "Importar Preset de Overlays";
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    LoadConfig(ofd.FileName);
+                    isUpdatingUI = true;
+                    UpdateSelectionState();
+                    RebuildGrid();
+                    isUpdatingUI = false;
+                    SaveConfig(); // Guardar como configuración principal
+                }
+            }
+        }
+
         private void ExitApplication()
         {
             SaveConfig();
@@ -872,6 +870,18 @@ namespace OwOverlays
             Application.Exit();
 
             Application.ApplicationExit += (s, e) => CleanupTrayIcon();
+        }
+
+        private FlowLayoutPanel CreateRowLayout()
+        {
+            return new FlowLayoutPanel
+            {
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Margin = new Padding(0, 0, 0, 5)
+            };
         }
 
         private Button CreateModernButton(string text, Point location, Size size, Color backColor)
@@ -903,8 +913,8 @@ namespace OwOverlays
                     g.Clear(IsLocked ? Color.Red : Color.LimeGreen);
                     g.FillEllipse(Brushes.White, 4, 4, 8, 8);
                     if (IsLocked) g.FillEllipse(Brushes.Red, 5, 5, 6, 6);
-                    trayIcon.Icon?.Dispose();
-                    trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
+                    trayIcon?.Icon?.Dispose();
+                    if (trayIcon != null) trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
                 }
             }
             catch
@@ -913,7 +923,7 @@ namespace OwOverlays
         }
     }
 
-#pragma warning disable CA1416
+#pragma warning disable CA1416, CS8618
 
     public class OverlayForm : Form
     {
@@ -921,11 +931,24 @@ namespace OwOverlays
         private bool isMouseDown = false;
         private bool _isLocked = true;
 
-        public event EventHandler RequestRemove;
-        public string GifFilePath { get; private set; }
+        public event EventHandler? RequestRemove;
+        public string GifFilePath { get; private set; } = "";
 
+        private OverlayOrientation _orientation = OverlayOrientation.Inferior;
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public OverlayOrientation Orientation { get; set; } = OverlayOrientation.Inferior;
+        public OverlayOrientation Orientation 
+        { 
+            get => _orientation;
+            set 
+            {
+                if (_orientation != value)
+                {
+                    _orientation = value;
+                    UpdateWindowSize();
+                    RefreshTransparency();
+                }
+            }
+        }
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool IsSelected { get; set; } = false;
@@ -933,12 +956,13 @@ namespace OwOverlays
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public int ScreenIndex { get; set; } = 0;
 
-        private System.Windows.Forms.Timer animationTimer;
-        private SDImage originalImage;
+        private System.Windows.Forms.Timer animationTimer = null!;
+        private SDImage? originalImage;
         private bool isWebP;
         private List<Bitmap> webpFrames = new List<Bitmap>();
         private List<int> webpDelays = new List<int>();
         private int currentFrameIndex = 0;
+        private float _aspectRatio = 1f;
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool UseChromaKey { get; set; } = false;
@@ -951,7 +975,7 @@ namespace OwOverlays
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool IsEyedropperMode { get; set; } = false;
-        public event Action<Color> ColorPicked;
+        public event Action<Color>? ColorPicked;
 
         protected override CreateParams CreateParams
         {
@@ -983,6 +1007,7 @@ namespace OwOverlays
             else
             {
                 originalImage = SDImage.FromFile(gifPath);
+                _aspectRatio = (float)originalImage.Width / originalImage.Height;
                 UpdateSize(height);
                 ImageAnimator.Animate(originalImage, (o, ev) => { });
             }
@@ -1026,7 +1051,14 @@ namespace OwOverlays
                     this.Location = ApplySnap(mousePos, this.Size);
                 }
             };
-            this.MouseUp += (s, e) => isMouseDown = false;
+            this.MouseUp += (s, e) => 
+            {
+                if (isMouseDown)
+                {
+                    isMouseDown = false;
+                    Form1.Instance?.SaveConfig();
+                }
+            };
             this.MouseClick += (s, e) =>
             {
                 if (IsEyedropperMode && e.Button == MouseButtons.Left)
@@ -1056,20 +1088,8 @@ namespace OwOverlays
             {
                 using (var image = ISImage.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(path))
                 {
-                    float ar = (float)image.Width / image.Height;
-                    int targetW, targetH;
-                    if (Orientation == OverlayOrientation.Derecha || Orientation == OverlayOrientation.Izquierda)
-                    {
-                        targetW = height;
-                        targetH = (int)(height * ar);
-                    }
-                    else
-                    {
-                        targetW = (int)(height * ar);
-                        targetH = height;
-                    }
-
-                    this.ClientSize = new Size(targetW, targetH);
+                    _aspectRatio = (float)image.Width / image.Height;
+                    UpdateSize(height);
 
                     for (int i = 0; i < image.Frames.Count; i++)
                     {
@@ -1099,13 +1119,10 @@ namespace OwOverlays
 
         public void UpdateSize(int height)
         {
-            if (isWebP) return; // WebP size is handled in LoadWebP
-            if (originalImage == null) return;
-            float ar = (float)originalImage.Width / originalImage.Height;
             if (Orientation == OverlayOrientation.Derecha || Orientation == OverlayOrientation.Izquierda)
-                this.ClientSize = new Size(height, (int)(height * ar));
+                this.ClientSize = new Size(height, (int)(height * _aspectRatio));
             else
-                this.ClientSize = new Size((int)(height * ar), height);
+                this.ClientSize = new Size((int)(height * _aspectRatio), height);
         }
 
         public void UpdateWindowSize() => UpdateSize(Form1.GifHeight);
@@ -1114,10 +1131,37 @@ namespace OwOverlays
         {
             int nx = desired.X, ny = desired.Y;
             Screen scr = Screen.FromPoint(desired);
-            if (Math.Abs(nx - scr.Bounds.Left) < 20) nx = scr.Bounds.Left;
-            else if (Math.Abs(nx + size.Width - scr.Bounds.Right) < 20) nx = scr.Bounds.Right - size.Width;
-            if (Math.Abs(ny - scr.Bounds.Top) < 20) ny = scr.Bounds.Top;
-            else if (Math.Abs(ny + size.Height - scr.Bounds.Bottom) < 20) ny = scr.Bounds.Bottom - size.Height;
+            
+            int threshold = 40; // Increased threshold for better snapping feeling
+            
+            Rectangle boundary = Form1.Instance.RespectTaskbarSetting ? scr.WorkingArea : scr.Bounds;
+            
+            bool snappedLeft = Math.Abs(nx - boundary.Left) < threshold;
+            bool snappedRight = Math.Abs(nx + size.Width - boundary.Right) < threshold;
+            bool snappedTop = Math.Abs(ny - boundary.Top) < threshold;
+            bool snappedBottom = Math.Abs(ny + size.Height - boundary.Bottom) < threshold;
+
+            if (snappedLeft) 
+            { 
+                nx = boundary.Left; 
+                this.Orientation = OverlayOrientation.Izquierda; 
+            }
+            else if (snappedRight) 
+            { 
+                nx = boundary.Right - size.Width; 
+                this.Orientation = OverlayOrientation.Derecha; 
+            }
+            else if (snappedTop) 
+            { 
+                ny = boundary.Top; 
+                this.Orientation = OverlayOrientation.Superior; 
+            }
+            else if (snappedBottom) 
+            { 
+                ny = boundary.Bottom - size.Height; 
+                this.Orientation = OverlayOrientation.Inferior; 
+            }
+
             return new Point(nx, ny);
         }
 
@@ -1160,7 +1204,7 @@ namespace OwOverlays
 
         public Color GetColorAt(int x, int y)
         {
-            Bitmap target = null;
+            Bitmap? target = null;
             if (isWebP && webpFrames.Count > 0)
                 target = webpFrames[0];
             else if (originalImage is Bitmap bmp)
@@ -1189,14 +1233,14 @@ namespace OwOverlays
                     g.Clear(Color.Transparent);
                     g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
 
-                    Bitmap frameToDraw = null;
+                    Bitmap? frameToDraw = null;
                     if (isWebP)
                     {
                         if (webpFrames.Count > currentFrameIndex)
                             frameToDraw = webpFrames[currentFrameIndex];
                     }
                     
-                    SDImage imageToDraw = isWebP ? (SDImage)frameToDraw : originalImage;
+                    SDImage? imageToDraw = isWebP ? (SDImage?)frameToDraw : originalImage;
                     if (imageToDraw == null) return;
 
                     switch (Orientation)
@@ -1354,7 +1398,7 @@ namespace OwOverlays
     [Serializable]
     public class OverlayConfig
     {
-        public string FilePath { get; set; }
+        public string FilePath { get; set; } = "";
         public int X { get; set; }
         public int Y { get; set; }
         public OverlayOrientation Orientation { get; set; } = OverlayOrientation.Inferior;
