@@ -26,7 +26,7 @@ OwOverlays is a lightweight Windows application designed to overlay animated GIF
 
 ## Quick Start
 
-1. Download the latest release from the `dist` folder.
+1. Download the latest release.
 2. Launch `OwOverlays.exe`.
 3. Right-click the system tray icon (represented by a green/red circle) to add GIFs or access the management window.
 
