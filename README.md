@@ -14,7 +14,15 @@ OwOverlays is a lightweight Windows application designed to overlay animated GIF
 - **Management Grid:** A modern visual interface for previewing and organizing active overlays.
 - **Performance Optimization:** An intelligent pause system that reduces CPU consumption to zero when overlays are hidden or inactive.
 - **Configuration Persistence:** Automatic saving of positions, sizes, chroma settings, monitor selection, and other preferences.
-- **System Tray Integration:** Discrete background execution via the system tray.
+- **Drag & Drop Support:** Drop GIFs or animated WebP files directly into the application window for instant overlay.
+- **Global Z-Order Management:** Toggle "Always on Top" to keep overlays floating above all windows or send them to the background (wallpaper mode).
+- **JSON Presets:** Export and import your entire overlay configuration as JSON files for easy sharing or switching between setups.
+- **System Tray Integration:** Discrete background execution via the system tray (blue circle icon).
+
+## Prerequisites
+
+- **OS:** Windows 10 or 11 (uses native Win32/GDI+ APIs).
+- **Runtime:** .NET 9.0 (unless using the self-contained version).
 
 ## Quick Start
 
