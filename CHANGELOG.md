@@ -2,6 +2,17 @@
 
 ---
 
+## [v2.1.0] - 2026-05-01 "The Branding & Identity Update"
+
+### Added
+- **Embedded Icon System:** Integrated official application and tray icons directly into the binary as resources. This ensures the app looks professional and maintains its branding in single-file distributions without external `assets/` folders.
+- **Dynamic Tray Status:** The system tray icon now features a real-time status indicator (Red dot for Paused, Lime Green for Active) drawn over the custom icon.
+
+### Improved
+- **Single-File Portability:** Fully optimized the resource loading logic to support `PublishSingleFile`, eliminating all runtime dependencies on external image assets for the core UI.
+
+---
+
 ## [v2.0.0] - 2026-05-01 "The UX & Precision Update"
 
 ### Added
@@ -16,9 +27,8 @@
 
 - **Modern UI Refactor:** Migrated to a responsive `FlowLayoutPanel` system with `AutoSize` support, ensuring the UI looks sharp on different DPI settings and window sizes.
 - **Dark Mode Visibility:** Fixed a native WinForms issue where disabled checkboxes/buttons were unreadable in dark themes. Implemented a custom "Safe-Disabled" state with color-coded feedback.
-- **Stand-alone Distribution:** Custom icons are now fully embedded as resources, enabling a true single-file `.exe` distribution without external dependencies.
-- **Dynamic Tray Feedback:** Added a real-time status indicator (Green/Red) on the tray icon to show Running/Paused state.
-- **Code Robustness:** Refactored internal control references to eliminate lookup errors and improve synchronization.
+- **Stand-alone Distribution:** Removed external `.ico` dependencies. The application now generates its own high-quality dynamic icons for the System Tray, facilitating a single `.exe` distribution.
+- **Code Robustness:** Refactored internal control references to eliminate lookup errors and improve synchronization between the Chroma Key toggle and the Tolerance slider.
 - **Build Pipeline:** Optimized for .NET 9.0 with `SingleFile` publishing support.
 
 ---
