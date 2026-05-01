@@ -201,19 +201,12 @@ namespace OwOverlays
                 trayIcon.Visible = true;
             }
 
-            try
+            using (Bitmap bmp = new Bitmap(16, 16))
+            using (Graphics g = Graphics.FromImage(bmp))
             {
-                if (trayIcon != null) trayIcon.Icon = new Icon("tray_icon.ico");
-            }
-            catch
-            {
-                using (Bitmap bmp = new Bitmap(16, 16))
-                using (Graphics g = Graphics.FromImage(bmp))
-                {
-                    g.Clear(Color.Cyan);
-                    g.FillEllipse(Brushes.Magenta, 2, 2, 12, 12);
-                    if (trayIcon != null) trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
-                }
+                g.Clear(Color.FromArgb(30, 30, 30));
+                g.FillEllipse(Brushes.DodgerBlue, 2, 2, 12, 12);
+                if (trayIcon != null) trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
             }
 
             trayMenu = new ContextMenuStrip();
