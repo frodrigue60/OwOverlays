@@ -43,6 +43,7 @@ namespace OwOverlays
         private Button btnChromaColor = null!;
         private ComboBox screenSelector = null!;
         private Label lblScreen = null!;
+        private CheckBox chkAlwaysOnTop = null!;
 
 
         public static int GifHeight { get; private set; } = 100;
@@ -118,9 +119,13 @@ namespace OwOverlays
             TaskbarHeightCheck.CheckedChanged += TaskbarHeightCheck_CheckedChanged;
             mainContainer.Controls.Add(TaskbarHeightCheck);
 
-            chkLockOverlays = new CheckBox { Text = "Lock positions (Click-through)", Checked = true, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
+            chkLockOverlays = new CheckBox { Text = "Lock positions (Click-through)", Checked = true, AutoSize = true, Margin = new Padding(0, 0, 0, 5) };
             chkLockOverlays.CheckedChanged += ChkLockOverlays_CheckedChanged;
             mainContainer.Controls.Add(chkLockOverlays);
+
+            chkAlwaysOnTop = new CheckBox { Text = "Always on Top", Checked = true, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
+            chkAlwaysOnTop.CheckedChanged += ChkAlwaysOnTop_CheckedChanged;
+            mainContainer.Controls.Add(chkAlwaysOnTop);
 
             // 5. Screen Row
             FlowLayoutPanel rowScreen = CreateRowLayout();
@@ -270,6 +275,7 @@ namespace OwOverlays
                 currentSettings.GifHeight = GifHeight;
                 currentSettings.RespectTaskbar = TaskbarHeightCheck.Checked;
                 currentSettings.IsLocked = IsLocked;
+                currentSettings.AlwaysOnTop = chkAlwaysOnTop.Checked;
 
                 string json = JsonConvert.SerializeObject(currentSettings, Formatting.Indented);
                 File.WriteAllText(path, json);
@@ -329,6 +335,11 @@ namespace OwOverlays
 
                 IsLocked = currentSettings.IsLocked;
                 chkLockOverlays.Checked = IsLocked;
+
+                chkAlwaysOnTop.Checked = currentSettings.AlwaysOnTop;
+                foreach (var overlay in overlays)
+                    overlay.SetZOrder(currentSettings.AlwaysOnTop);
+
                 UpdateTrayIcon();
             }
             catch (Exception ex)
@@ -662,6 +673,7 @@ namespace OwOverlays
 
                 newOverlay.Location = new Point(nextX, baseY);
                 newOverlay.SetLocked(IsLocked);
+                newOverlay.SetZOrder(chkAlwaysOnTop.Checked);
                 overlays.Add(newOverlay);
                 newOverlay.RequestRemove += Overlay_RequestRemove;
                 AddGridItem(gifPath);
@@ -677,6 +689,15 @@ namespace OwOverlays
             {
                 MessageBox.Show($"Error loading GIF: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void ChkAlwaysOnTop_CheckedChanged(object? sender, EventArgs e)
+        {
+            foreach (var overlay in overlays)
+            {
+                overlay.SetZOrder(chkAlwaysOnTop.Checked);
+            }
+            SaveConfig();
         }
 
         private void BtnAdd_Click(object? sender, EventArgs e)
@@ -1027,6 +1048,15 @@ namespace OwOverlays
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool IsEyedropperMode { get; set; } = false;
         public event Action<Color>? ColorPicked;
+
+        public void SetZOrder(bool topMost)
+        {
+            this.TopMost = topMost;
+            if (!topMost)
+            {
+                this.SendToBack();
+            }
+        }
 
         protected override CreateParams CreateParams
         {
@@ -1480,6 +1510,7 @@ namespace OwOverlays
     {
         public List<OverlayConfig> Overlays { get; set; } = new List<OverlayConfig>();
         public bool IsLocked { get; set; } = true;
+        public bool AlwaysOnTop { get; set; } = true;
         public bool RespectTaskbar { get; set; } = true;
         public int GifHeight { get; set; } = 100;
     }
