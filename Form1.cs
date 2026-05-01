@@ -44,6 +44,9 @@ namespace OwOverlays
         private ComboBox screenSelector = null!;
         private Label lblScreen = null!;
         private CheckBox chkAlwaysOnTop = null!;
+        private TrackBar trackTolerance = null!;
+        private Label lblTolerance = null!;
+        private Button btnEyedropper = null!;
 
 
         public static int GifHeight { get; private set; } = 100;
@@ -84,6 +87,7 @@ namespace OwOverlays
             mainContainer.AutoSize = true;
             mainContainer.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             mainContainer.Padding = new Padding(10);
+            mainContainer.ForeColor = Color.White;
             this.Controls.Add(mainContainer);
 
             // 1. Overlays Grid
@@ -107,7 +111,7 @@ namespace OwOverlays
 
             // 3. Height Row
             FlowLayoutPanel rowHeight = CreateRowLayout();
-            lblHeight = new Label { Text = "Overlay Height (px):", AutoSize = true, Margin = new Padding(0, 7, 0, 0) };
+            lblHeight = new Label { Text = "Overlay Height (px):", AutoSize = true, Margin = new Padding(0, 7, 0, 0), ForeColor = Color.White };
             heightInput = new NumericUpDown { Size = new Size(175, 25), BackColor = controlBack, ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Minimum = 10, Maximum = MaxGifHeight, Value = GifHeight };
             heightInput.ValueChanged += HeightInput_ValueChanged;
             rowHeight.Controls.Add(lblHeight);
@@ -115,21 +119,21 @@ namespace OwOverlays
             mainContainer.Controls.Add(rowHeight);
 
             // 4. System Checks
-            TaskbarHeightCheck = new CheckBox { Text = "Respect taskbar", Checked = true, AutoSize = true, Margin = new Padding(0, 5, 0, 5) };
+            TaskbarHeightCheck = new CheckBox { Text = "Respect taskbar", Checked = true, AutoSize = true, Margin = new Padding(0, 5, 0, 5), ForeColor = Color.White };
             TaskbarHeightCheck.CheckedChanged += TaskbarHeightCheck_CheckedChanged;
             mainContainer.Controls.Add(TaskbarHeightCheck);
 
-            chkLockOverlays = new CheckBox { Text = "Lock positions (Click-through)", Checked = true, AutoSize = true, Margin = new Padding(0, 0, 0, 5) };
+            chkLockOverlays = new CheckBox { Text = "Lock positions (Click-through)", Checked = true, AutoSize = true, Margin = new Padding(0, 0, 0, 5), ForeColor = Color.White };
             chkLockOverlays.CheckedChanged += ChkLockOverlays_CheckedChanged;
             mainContainer.Controls.Add(chkLockOverlays);
 
-            chkAlwaysOnTop = new CheckBox { Text = "Always on Top", Checked = true, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
+            chkAlwaysOnTop = new CheckBox { Text = "Always on Top", Checked = true, AutoSize = true, Margin = new Padding(0, 0, 0, 10), ForeColor = Color.White };
             chkAlwaysOnTop.CheckedChanged += ChkAlwaysOnTop_CheckedChanged;
             mainContainer.Controls.Add(chkAlwaysOnTop);
 
             // 5. Screen Row
             FlowLayoutPanel rowScreen = CreateRowLayout();
-            lblScreen = new Label { Text = "Monitor (Screen):", AutoSize = true, Margin = new Padding(0, 7, 0, 0) };
+            lblScreen = new Label { Text = "Monitor (Screen):", AutoSize = true, Margin = new Padding(0, 7, 0, 0), ForeColor = Color.White };
             screenSelector = new ComboBox { Size = new Size(175, 25), DropDownStyle = ComboBoxStyle.DropDownList, BackColor = controlBack, ForeColor = Color.White, Enabled = false };
             screenSelector.SelectedIndexChanged += ScreenSelector_SelectedIndexChanged;
             rowScreen.Controls.Add(lblScreen);
@@ -137,7 +141,7 @@ namespace OwOverlays
             mainContainer.Controls.Add(rowScreen);
 
             // 6. Chroma Key Row
-            chkChromaKey = new CheckBox { Text = "Chroma Key (Remove background)", AutoSize = true, Enabled = false, Margin = new Padding(0, 5, 0, 5) };
+            chkChromaKey = new CheckBox { Text = "Chroma Key (Remove background)", AutoSize = true, AutoCheck = false, ForeColor = Color.Gray, Margin = new Padding(0, 5, 0, 5) };
             chkChromaKey.CheckedChanged += ChkChromaKey_CheckedChanged;
             mainContainer.Controls.Add(chkChromaKey);
 
@@ -146,7 +150,7 @@ namespace OwOverlays
             btnChromaColor.Enabled = false;
             btnChromaColor.Click += BtnChromaColor_Click;
             
-            Button btnEyedropper = CreateModernButton("Eyedropper", Point.Empty, new Size(115, 25), Color.FromArgb(60, 60, 60));
+            btnEyedropper = CreateModernButton("Eyedropper", Point.Empty, new Size(115, 25), Color.FromArgb(60, 60, 60));
             btnEyedropper.Name = "btnEyedropper";
             btnEyedropper.Enabled = false;
             btnEyedropper.Click += BtnEyedropper_Click;
@@ -157,8 +161,8 @@ namespace OwOverlays
 
             // 7. Tolerance Row
             FlowLayoutPanel rowTolerance = CreateRowLayout();
-            Label lblTolerance = new Label { Text = "Tolerance: 30", Name = "lblTolerance", ForeColor = Color.White, Font = new Font("Segoe UI", 8F), AutoSize = true, Margin = new Padding(0, 5, 0, 0) };
-            TrackBar trackTolerance = new TrackBar { Name = "trackTolerance", Minimum = 10, Maximum = 150, Value = 30, TickFrequency = 20, Size = new Size(240, 30), Enabled = false };
+            lblTolerance = new Label { Text = "Tolerance: 30", Name = "lblTolerance", ForeColor = Color.White, Font = new Font("Segoe UI", 8F), AutoSize = true, Margin = new Padding(0, 5, 0, 0) };
+            trackTolerance = new TrackBar { Name = "trackTolerance", Minimum = 10, Maximum = 150, Value = 30, TickFrequency = 20, Size = new Size(240, 30), Enabled = false };
             trackTolerance.ValueChanged += TrackTolerance_ValueChanged;
             rowTolerance.Controls.Add(lblTolerance);
             rowTolerance.Controls.Add(trackTolerance);
@@ -388,34 +392,32 @@ namespace OwOverlays
                 else
                     screenSelector.SelectedIndex = 0;
 
-                chkChromaKey.Enabled = true;
+                chkChromaKey.AutoCheck = true;
+                chkChromaKey.ForeColor = Color.White;
                 chkChromaKey.Checked = selectedOverlay.UseChromaKey;
 
                 btnChromaColor.Enabled = true;
                 btnChromaColor.BackColor = selectedOverlay.ChromaKeyColor;
 
-                if (this.Controls["btnEyedropper"] is Button btnEyedropper)
-                    btnEyedropper.Enabled = true;
+                btnEyedropper.Enabled = true;
 
-                if (this.Controls["trackTolerance"] is TrackBar track)
-                {
-                    track.Enabled = selectedOverlay.UseChromaKey;
-                    track.Value = Math.Max(track.Minimum, Math.Min(track.Maximum, selectedOverlay.ChromaKeyTolerance));
-                }
-                if (this.Controls["lblTolerance"] is Label lbl)
-                    lbl.Text = $"Tolerance: {selectedOverlay.ChromaKeyTolerance}";
+                trackTolerance.Enabled = selectedOverlay.UseChromaKey;
+                trackTolerance.Value = Math.Max(trackTolerance.Minimum, Math.Min(trackTolerance.Maximum, selectedOverlay.ChromaKeyTolerance));
+                
+                lblTolerance.Text = $"Tolerance: {selectedOverlay.ChromaKeyTolerance}";
             }
             else
             {
                 screenSelector.Enabled = false;
-                chkChromaKey.Enabled = false;
+                
+                chkChromaKey.AutoCheck = false;
+                chkChromaKey.ForeColor = Color.Gray;
+                chkChromaKey.Checked = false;
+                
                 btnChromaColor.Enabled = false;
 
-                if (this.Controls["btnEyedropper"] is Button btnEyedropper)
-                    btnEyedropper.Enabled = false;
-
-                if (this.Controls["trackTolerance"] is TrackBar track)
-                    track.Enabled = false;
+                btnEyedropper.Enabled = false;
+                trackTolerance.Enabled = false;
             }
 
             isUpdatingUI = false;
@@ -494,8 +496,7 @@ namespace OwOverlays
                 overlays[selectedIndex].UseChromaKey = chkChromaKey.Checked;
                 overlays[selectedIndex].RefreshTransparency();
 
-                if (this.Controls["trackTolerance"] is TrackBar track)
-                    track.Enabled = chkChromaKey.Checked;
+                trackTolerance.Enabled = chkChromaKey.Checked;
 
                 SaveConfig();
             }
@@ -565,8 +566,7 @@ namespace OwOverlays
             {
                 overlays[selectedIndex].ChromaKeyTolerance = t.Value;
                 overlays[selectedIndex].RefreshTransparency();
-                if (this.Controls.Find("lblTolerance", true).FirstOrDefault() is Label lbl)
-                    lbl.Text = $"Tolerance: {t.Value}";
+                lblTolerance.Text = $"Tolerance: {t.Value}";
                 SaveConfig();
             }
         }
