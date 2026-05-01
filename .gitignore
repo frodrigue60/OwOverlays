@@ -367,3 +367,4 @@ FodyWeavers.xsd
 
 # Publish output directory
 dist/
+log.txt
