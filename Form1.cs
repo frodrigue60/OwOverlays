@@ -85,7 +85,7 @@ namespace OwOverlays
             mainContainer.Padding = new Padding(10);
             this.Controls.Add(mainContainer);
 
-            // 1. Grid de Overlays
+            // 1. Overlays Grid
             gridOverlays = new FlowLayoutPanel();
             gridOverlays.Size = new Size(365, 200);
             gridOverlays.BackColor = controlBack;
@@ -94,45 +94,45 @@ namespace OwOverlays
             gridOverlays.Margin = new Padding(0, 0, 0, 10);
             mainContainer.Controls.Add(gridOverlays);
 
-            // 2. Fila de Botones Principales
+            // 2. Main Buttons Row
             FlowLayoutPanel rowButtons = CreateRowLayout();
-            btnAdd = CreateModernButton("Agregar GIF", Point.Empty, new Size(180, 35), accentColor);
+            btnAdd = CreateModernButton("Add GIF", Point.Empty, new Size(180, 35), accentColor);
             btnAdd.Click += BtnAdd_Click;
-            btnRemove = CreateModernButton("Eliminar", Point.Empty, new Size(180, 35), Color.FromArgb(200, 50, 50));
+            btnRemove = CreateModernButton("Remove", Point.Empty, new Size(180, 35), Color.FromArgb(200, 50, 50));
             btnRemove.Click += BtnRemove_Click;
             rowButtons.Controls.Add(btnAdd);
             rowButtons.Controls.Add(btnRemove);
             mainContainer.Controls.Add(rowButtons);
 
-            // 3. Fila de Altura
+            // 3. Height Row
             FlowLayoutPanel rowHeight = CreateRowLayout();
-            lblHeight = new Label { Text = "Altura del Overlay (px):", AutoSize = true, Margin = new Padding(0, 7, 0, 0) };
+            lblHeight = new Label { Text = "Overlay Height (px):", AutoSize = true, Margin = new Padding(0, 7, 0, 0) };
             heightInput = new NumericUpDown { Size = new Size(175, 25), BackColor = controlBack, ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Minimum = 10, Maximum = MaxGifHeight, Value = GifHeight };
             heightInput.ValueChanged += HeightInput_ValueChanged;
             rowHeight.Controls.Add(lblHeight);
             rowHeight.Controls.Add(heightInput);
             mainContainer.Controls.Add(rowHeight);
 
-            // 4. Checks de Sistema
-            TaskbarHeightCheck = new CheckBox { Text = "Respetar barra de tareas", Checked = true, AutoSize = true, Margin = new Padding(0, 5, 0, 5) };
+            // 4. System Checks
+            TaskbarHeightCheck = new CheckBox { Text = "Respect taskbar", Checked = true, AutoSize = true, Margin = new Padding(0, 5, 0, 5) };
             TaskbarHeightCheck.CheckedChanged += TaskbarHeightCheck_CheckedChanged;
             mainContainer.Controls.Add(TaskbarHeightCheck);
 
-            chkLockOverlays = new CheckBox { Text = "Bloquear posiciones (Click-through)", Checked = true, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
+            chkLockOverlays = new CheckBox { Text = "Lock positions (Click-through)", Checked = true, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
             chkLockOverlays.CheckedChanged += ChkLockOverlays_CheckedChanged;
             mainContainer.Controls.Add(chkLockOverlays);
 
-            // 5. Fila de Pantalla
+            // 5. Screen Row
             FlowLayoutPanel rowScreen = CreateRowLayout();
-            lblScreen = new Label { Text = "Pantalla (Monitor):", AutoSize = true, Margin = new Padding(0, 7, 0, 0) };
+            lblScreen = new Label { Text = "Monitor (Screen):", AutoSize = true, Margin = new Padding(0, 7, 0, 0) };
             screenSelector = new ComboBox { Size = new Size(175, 25), DropDownStyle = ComboBoxStyle.DropDownList, BackColor = controlBack, ForeColor = Color.White, Enabled = false };
             screenSelector.SelectedIndexChanged += ScreenSelector_SelectedIndexChanged;
             rowScreen.Controls.Add(lblScreen);
             rowScreen.Controls.Add(screenSelector);
             mainContainer.Controls.Add(rowScreen);
 
-            // 6. Fila de Chroma Key
-            chkChromaKey = new CheckBox { Text = "Chroma Key (Quitar fondo)", AutoSize = true, Enabled = false, Margin = new Padding(0, 5, 0, 5) };
+            // 6. Chroma Key Row
+            chkChromaKey = new CheckBox { Text = "Chroma Key (Remove background)", AutoSize = true, Enabled = false, Margin = new Padding(0, 5, 0, 5) };
             chkChromaKey.CheckedChanged += ChkChromaKey_CheckedChanged;
             mainContainer.Controls.Add(chkChromaKey);
 
@@ -141,7 +141,7 @@ namespace OwOverlays
             btnChromaColor.Enabled = false;
             btnChromaColor.Click += BtnChromaColor_Click;
             
-            Button btnEyedropper = CreateModernButton("Gotero", Point.Empty, new Size(115, 25), Color.FromArgb(60, 60, 60));
+            Button btnEyedropper = CreateModernButton("Eyedropper", Point.Empty, new Size(115, 25), Color.FromArgb(60, 60, 60));
             btnEyedropper.Name = "btnEyedropper";
             btnEyedropper.Enabled = false;
             btnEyedropper.Click += BtnEyedropper_Click;
@@ -150,30 +150,38 @@ namespace OwOverlays
             rowChromaTools.Controls.Add(btnEyedropper);
             mainContainer.Controls.Add(rowChromaTools);
 
-            // 7. Fila de Tolerancia
+            // 7. Tolerance Row
             FlowLayoutPanel rowTolerance = CreateRowLayout();
-            Label lblTolerance = new Label { Text = "Tolerancia: 30", Name = "lblTolerance", ForeColor = Color.White, Font = new Font("Segoe UI", 8F), AutoSize = true, Margin = new Padding(0, 5, 0, 0) };
+            Label lblTolerance = new Label { Text = "Tolerance: 30", Name = "lblTolerance", ForeColor = Color.White, Font = new Font("Segoe UI", 8F), AutoSize = true, Margin = new Padding(0, 5, 0, 0) };
             TrackBar trackTolerance = new TrackBar { Name = "trackTolerance", Minimum = 10, Maximum = 150, Value = 30, TickFrequency = 20, Size = new Size(240, 30), Enabled = false };
             trackTolerance.ValueChanged += TrackTolerance_ValueChanged;
             rowTolerance.Controls.Add(lblTolerance);
             rowTolerance.Controls.Add(trackTolerance);
             mainContainer.Controls.Add(rowTolerance);
 
-            // 9. Presets (Importar/Exportar)
+            // 9. Presets (Import/Export)
             FlowLayoutPanel rowPresets = CreateRowLayout();
-            Button btnSavePreset = CreateModernButton("Exportar Preset", Point.Empty, new Size(180, 30), Color.FromArgb(60, 60, 60));
+            Button btnSavePreset = CreateModernButton("Export Preset", Point.Empty, new Size(180, 30), Color.FromArgb(60, 60, 60));
             btnSavePreset.Click += (s, e) => ExportPreset();
-            Button btnLoadPreset = CreateModernButton("Importar Preset", Point.Empty, new Size(180, 30), Color.FromArgb(60, 60, 60));
+            Button btnLoadPreset = CreateModernButton("Import Preset", Point.Empty, new Size(180, 30), Color.FromArgb(60, 60, 60));
             btnLoadPreset.Click += (s, e) => ImportPreset();
             rowPresets.Controls.Add(btnSavePreset);
             rowPresets.Controls.Add(btnLoadPreset);
             mainContainer.Controls.Add(rowPresets);
 
-            // 10. Ayuda
-            Label lblHelp = new Label { Text = "Tip: Click derecho sobre un GIF desbloqueado para cerrar.", ForeColor = Color.Gray, Font = new Font("Segoe UI", 8F), AutoSize = true, Margin = new Padding(0, 10, 0, 0) };
+            // 10. Help
+            Label lblHelp = new Label { Text = "Tip: Right-click on an unlocked GIF to close it.", ForeColor = Color.Gray, Font = new Font("Segoe UI", 8F), AutoSize = true, Margin = new Padding(0, 10, 0, 0) };
             mainContainer.Controls.Add(lblHelp);
 
             colorDialog = new ColorDialog();
+
+            // --- Drag & Drop Support ---
+            this.AllowDrop = true;
+            this.DragEnter += Form1_DragEnter;
+            this.DragDrop += Form1_DragDrop;
+            gridOverlays.AllowDrop = true;
+            gridOverlays.DragEnter += Form1_DragEnter;
+            gridOverlays.DragDrop += Form1_DragDrop;
 
             //this.Size = new Size(400, 550); // Removed for AutoSize
 
@@ -268,7 +276,7 @@ namespace OwOverlays
             }
             catch (Exception ex)
             {
-                if (customPath != null) MessageBox.Show("Error al guardar preset: " + ex.Message);
+                if (customPath != null) MessageBox.Show("Error saving preset: " + ex.Message);
             }
         }
 
@@ -325,7 +333,7 @@ namespace OwOverlays
             }
             catch (Exception ex)
             {
-                if (customPath != null) MessageBox.Show("Error al cargar preset: " + ex.Message);
+                if (customPath != null) MessageBox.Show("Error loading preset: " + ex.Message);
             }
         }
 
@@ -362,7 +370,7 @@ namespace OwOverlays
                 screenSelector.Items.Clear();
                 for (int i = 0; i < Screen.AllScreens.Length; i++)
                 {
-                    screenSelector.Items.Add($"Pantalla {i + 1} ({Screen.AllScreens[i].Bounds.Width}x{Screen.AllScreens[i].Bounds.Height})");
+                    screenSelector.Items.Add($"Monitor {i + 1} ({Screen.AllScreens[i].Bounds.Width}x{Screen.AllScreens[i].Bounds.Height})");
                 }
                 if (selectedOverlay.ScreenIndex >= 0 && selectedOverlay.ScreenIndex < screenSelector.Items.Count)
                     screenSelector.SelectedIndex = selectedOverlay.ScreenIndex;
@@ -384,7 +392,7 @@ namespace OwOverlays
                     track.Value = Math.Max(track.Minimum, Math.Min(track.Maximum, selectedOverlay.ChromaKeyTolerance));
                 }
                 if (this.Controls["lblTolerance"] is Label lbl)
-                    lbl.Text = $"Tolerancia: {selectedOverlay.ChromaKeyTolerance}";
+                    lbl.Text = $"Tolerance: {selectedOverlay.ChromaKeyTolerance}";
             }
             else
             {
@@ -546,8 +554,8 @@ namespace OwOverlays
             {
                 overlays[selectedIndex].ChromaKeyTolerance = t.Value;
                 overlays[selectedIndex].RefreshTransparency();
-                if (this.Controls["lblTolerance"] is Label lbl)
-                    lbl.Text = $"Tolerancia: {t.Value}";
+                if (this.Controls.Find("lblTolerance", true).FirstOrDefault() is Label lbl)
+                    lbl.Text = $"Tolerance: {t.Value}";
                 SaveConfig();
             }
         }
@@ -635,49 +643,55 @@ namespace OwOverlays
             SaveConfig();
         }
 
+        private void AddOverlay(string gifPath)
+        {
+            try
+            {
+                OverlayForm newOverlay = new OverlayForm(gifPath, GifHeight);
+                
+                int nextX = 0;
+                foreach (var o in overlays)
+                {
+                    if (o != newOverlay && o.Orientation == OverlayOrientation.Inferior)
+                    {
+                        if (o.Location.X + o.Width > nextX) nextX = o.Location.X + o.Width;
+                    }
+                }
+
+                if (nextX + newOverlay.Width > screenWidth) nextX = 0;
+
+                newOverlay.Location = new Point(nextX, baseY);
+                newOverlay.SetLocked(IsLocked);
+                overlays.Add(newOverlay);
+                newOverlay.RequestRemove += Overlay_RequestRemove;
+                AddGridItem(gifPath);
+
+                newOverlay.UpdateWindowSize();
+                newOverlay.RefreshTransparency();
+                if (isPaused) newOverlay.Hide();
+                else newOverlay.Show();
+
+                SaveConfig();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading GIF: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void BtnAdd_Click(object? sender, EventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Imágenes soportadas|*.gif;*.webp;*.png;*.jpg;*.jpeg|GIF|*.gif|WebP|*.webp|PNG|*.png|JPG|*.jpg;*.jpeg|Todos|*.*";
-            openFileDialog.Multiselect = true;
-
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            using (OpenFileDialog ofd = new OpenFileDialog())
             {
-                foreach (string gifPath in openFileDialog.FileNames)
+                ofd.Filter = "Supported Images|*.gif;*.webp;*.png;*.jpg;*.jpeg|GIF|*.gif|WebP|*.webp|All Files|*.*";
+                ofd.Title = "Select Overlay Image";
+                ofd.Multiselect = true;
+                if (ofd.ShowDialog() == DialogResult.OK)
                 {
-                try
-                {
-                    OverlayForm newOverlay = new OverlayForm(gifPath, GifHeight);
-                    
-                    int nextX = 0;
-                    foreach (var o in overlays)
+                    foreach (string file in ofd.FileNames)
                     {
-                        if (o != newOverlay && o.Orientation == OverlayOrientation.Inferior)
-                        {
-                            if (o.Location.X + o.Width > nextX) nextX = o.Location.X + o.Width;
-                        }
+                        AddOverlay(file);
                     }
-
-                    if (nextX + newOverlay.Width > screenWidth) nextX = 0;
-
-                    newOverlay.Location = new Point(nextX, baseY);
-                    newOverlay.SetLocked(IsLocked);
-                    overlays.Add(newOverlay);
-                    newOverlay.RequestRemove += Overlay_RequestRemove;
-                    AddGridItem(gifPath);
-
-                    newOverlay.UpdateWindowSize();
-                    newOverlay.RefreshTransparency();
-                    if (isPaused) newOverlay.Hide();
-                    else newOverlay.Show();
-
-                    SaveConfig();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error al cargar el GIF: {ex.Message}", "Error", MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
-                }
                 }
             }
         }
@@ -686,14 +700,18 @@ namespace OwOverlays
         {
             if (selectedIndex >= 0)
             {
-                int index = selectedIndex;
-                OverlayForm toRemove = overlays[index];
-                toRemove.Close();
-                overlays.RemoveAt(index);
-                
-                selectedIndex = -1;
-                RebuildGrid();
-                SaveConfig();
+                if (MessageBox.Show("Are you sure you want to remove the selected overlay?", "Confirm Removal",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    int index = selectedIndex;
+                    OverlayForm toRemove = overlays[index];
+                    toRemove.Close();
+                    overlays.RemoveAt(index);
+                    
+                    selectedIndex = -1;
+                    RebuildGrid();
+                    SaveConfig();
+                }
             }
         }
 
@@ -733,7 +751,7 @@ namespace OwOverlays
             }
 
             if (trayMenu?.Items.Count > 4)
-                trayMenu.Items[4].Text = isPaused ? "Reanudar visualización" : "Pausar visualización";
+                trayMenu.Items[4].Text = isPaused ? "Resume visualization" : "Pause visualization";
         }
 
         public class GifThumbnailItem : System.Windows.Forms.Panel
@@ -822,12 +840,12 @@ namespace OwOverlays
             using (SaveFileDialog sfd = new SaveFileDialog())
             {
                 sfd.Filter = "Preset JSON|*.json";
-                sfd.Title = "Exportar Preset de Overlays";
-                sfd.FileName = "mi_preset_overlays.json";
+                sfd.Title = "Export Overlay Preset";
+                sfd.FileName = "my_overlay_preset.json";
                 if (sfd.ShowDialog() == DialogResult.OK)
                 {
                     SaveConfig(sfd.FileName);
-                    MessageBox.Show("Preset exportado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("Preset exported successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
         }
@@ -837,7 +855,7 @@ namespace OwOverlays
             using (OpenFileDialog ofd = new OpenFileDialog())
             {
                 ofd.Filter = "Preset JSON|*.json";
-                ofd.Title = "Importar Preset de Overlays";
+                ofd.Title = "Import Overlay Preset";
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
                     LoadConfig(ofd.FileName);
@@ -846,6 +864,39 @@ namespace OwOverlays
                     RebuildGrid();
                     isUpdatingUI = false;
                     SaveConfig(); // Guardar como configuración principal
+                }
+            }
+        }
+
+        private void Form1_DragEnter(object? sender, DragEventArgs e)
+        {
+            if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop)!;
+                bool hasSupported = files.Any(f => {
+                    string ext = Path.GetExtension(f).ToLower();
+                    return ext == ".gif" || ext == ".webp";
+                });
+                
+                if (hasSupported)
+                    e.Effect = DragDropEffects.Copy;
+                else
+                    e.Effect = DragDropEffects.None;
+            }
+        }
+
+        private void Form1_DragDrop(object? sender, DragEventArgs e)
+        {
+            if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop)!;
+                foreach (string file in files)
+                {
+                    string ext = Path.GetExtension(file).ToLower();
+                    if (ext == ".gif" || ext == ".webp")
+                    {
+                        AddOverlay(file);
+                    }
                 }
             }
         }
