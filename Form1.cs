@@ -68,6 +68,10 @@ namespace OwOverlays
             baseY = screenHeight - taskbarHeight - GifHeight;
 
             this.Text = "OwOverlays";
+            
+            // Set Window Icon from Embedded Resource
+            this.Icon = LoadIconFromResource("OwOverlays.assets.app_icon.ico") ?? SystemIcons.Application;
+
             this.BackColor = Color.FromArgb(30, 30, 30);
             this.ForeColor = Color.White;
             this.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
@@ -201,12 +205,24 @@ namespace OwOverlays
                 trayIcon.Visible = true;
             }
 
-            using (Bitmap bmp = new Bitmap(16, 16))
-            using (Graphics g = Graphics.FromImage(bmp))
+            string trayIconPath = Path.Combine(Application.StartupPath, "assets", "tray_icon.ico");
+            if (trayIcon != null)
             {
-                g.Clear(Color.FromArgb(30, 30, 30));
-                g.FillEllipse(Brushes.DodgerBlue, 2, 2, 12, 12);
-                if (trayIcon != null) trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
+                if (File.Exists(trayIconPath))
+                {
+                    trayIcon.Icon = new Icon(trayIconPath);
+                }
+                else
+                {
+                    // Fallback to blue circle if icon missing
+                    using (Bitmap bmp = new Bitmap(16, 16))
+                    using (Graphics g = Graphics.FromImage(bmp))
+                    {
+                        g.Clear(Color.FromArgb(30, 30, 30));
+                        g.FillEllipse(Brushes.DodgerBlue, 2, 2, 12, 12);
+                        trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
+                    }
+                }
             }
 
             trayMenu = new ContextMenuStrip();
@@ -766,6 +782,8 @@ namespace OwOverlays
 
             if (trayMenu?.Items.Count > 4)
                 trayMenu.Items[4].Text = isPaused ? "Resume visualization" : "Pause visualization";
+
+            UpdateTrayIcon();
         }
 
         public class GifThumbnailItem : System.Windows.Forms.Panel
@@ -968,16 +986,48 @@ namespace OwOverlays
             return btn;
         }
 
+        private static Icon? LoadIconFromResource(string resourceName)
+        {
+            try
+            {
+                using (var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+                {
+                    return stream != null ? new Icon(stream) : null;
+                }
+            }
+            catch { return null; }
+        }
+
         private void UpdateTrayIcon()
         {
             try
             {
+                Icon? baseIcon = LoadIconFromResource("OwOverlays.assets.tray_icon.ico") 
+                    ?? LoadIconFromResource("OwOverlays.assets.app_icon.ico");
+
                 using (Bitmap bmp = new Bitmap(16, 16))
                 using (Graphics g = Graphics.FromImage(bmp))
                 {
-                    g.Clear(IsLocked ? Color.Red : Color.LimeGreen);
-                    g.FillEllipse(Brushes.White, 4, 4, 8, 8);
-                    if (IsLocked) g.FillEllipse(Brushes.Red, 5, 5, 6, 6);
+                    if (baseIcon != null)
+                    {
+                        g.DrawIcon(baseIcon, new Rectangle(0, 0, 16, 16));
+                        baseIcon.Dispose();
+                    }
+                    else
+                    {
+                        // Fallback if no icon file exists
+                        g.Clear(Color.FromArgb(30, 30, 30));
+                        g.FillEllipse(IsLocked ? Brushes.Red : Brushes.LimeGreen, 2, 2, 12, 12);
+                    }
+
+                    // Draw status indicator (small dot in corner)
+                    Color statusColor = isPaused ? Color.Red : Color.LimeGreen;
+                    using (Brush b = new SolidBrush(statusColor))
+                    {
+                        g.FillEllipse(Brushes.White, 9, 9, 7, 7); // Border/Background for visibility
+                        g.FillEllipse(b, 10, 10, 5, 5);
+                    }
+
                     trayIcon?.Icon?.Dispose();
                     if (trayIcon != null) trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
                 }
